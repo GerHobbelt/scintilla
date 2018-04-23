@@ -128,7 +128,7 @@ void SelectionRange::Swap() {
 	std::swap(caret, anchor);
 }
 
-bool SelectionRange::Trim(SelectionRange range) {
+bool SelectionRange::Trim(const SelectionRange& range) {
 	const SelectionPosition startRange = range.Start();
 	const SelectionPosition endRange = range.End();
 	SelectionPosition start = Start();
@@ -359,7 +359,7 @@ void Selection::DropAdditionalRanges() {
 	SetSelection(RangeMain());
 }
 
-void Selection::TentativeSelection(SelectionRange range) {
+void Selection::TentativeSelection(const SelectionRange& range) {
 	if (!tentativeMain) {
 		rangesSaved = ranges;
 	}

@@ -8,6 +8,8 @@
 #ifndef CELLBUFFER_H
 #define CELLBUFFER_H
 
+#include "Position.h"
+
 namespace Scintilla {
 
 // Interface to per-line data that wants to see each line insertion and deletion

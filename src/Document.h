@@ -8,6 +8,8 @@
 #ifndef DOCUMENT_H
 #define DOCUMENT_H
 
+#include "ILoader.h"
+
 namespace Scintilla {
 
 class DocWatcher;

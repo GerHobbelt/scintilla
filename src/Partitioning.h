@@ -8,6 +8,8 @@
 #ifndef PARTITIONING_H
 #define PARTITIONING_H
 
+#include <memory>
+
 namespace Scintilla {
 
 /// A split vector of integers with a method for adding a value to all elements

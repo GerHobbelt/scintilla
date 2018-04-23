@@ -2929,6 +2929,7 @@ val SCLEX_JSON=120
 val SCLEX_EDIFACT=121
 val SCLEX_INDENT=122
 val SCLEX_MAXIMA=123
+val SCLEX_AHK=200
 
 # When a lexer specifies its language as SCLEX_AUTOMATIC it receives a
 # value assigned in sequence from SCLEX_AUTOMATIC+1.
