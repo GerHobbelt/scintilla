@@ -892,10 +892,10 @@ void SurfaceImpl::MeasureWidths(Font &font_, const char *s, int len, XYPOSITION 
 		// Map the widths given for UTF-16 characters back onto the UTF-8 input string
 		CFIndex fit = textLayout->getStringLength();
 		int ui=0;
-		const unsigned char *us = reinterpret_cast<const unsigned char *>(s);
 		int i=0;
 		while (ui<fit) {
-			const unsigned int byteCount = UTF8BytesOfLead[us[i]];
+			const unsigned char uch = s[i];
+			const unsigned int byteCount = UTF8BytesOfLead[uch];
 			const int codeUnits = UTF16LengthFromUTF8ByteCount(byteCount);
 			CGFloat xPosition = CTLineGetOffsetForStringIndex(mLine, ui+codeUnits, NULL);
 			for (unsigned int bytePos=0; (bytePos<byteCount) && (i<len); bytePos++) {
@@ -1779,34 +1779,6 @@ void Menu::Destroy() {
 void Menu::Show(Point, Window &) {
 	// Cocoa menus are handled a bit differently. We only create the menu. The framework
 	// takes care to show it properly.
-}
-
-//----------------- ElapsedTime --------------------------------------------------------------------
-
-// ElapsedTime is used for precise performance measurements during development
-// and not for anything a user sees.
-
-ElapsedTime::ElapsedTime() {
-	struct timeval curTime;
-	gettimeofday(&curTime, NULL);
-
-	bigBit = curTime.tv_sec;
-	littleBit = curTime.tv_usec;
-}
-
-double ElapsedTime::Duration(bool reset) {
-	struct timeval curTime;
-	gettimeofday(&curTime, NULL);
-	long endBigBit = curTime.tv_sec;
-	long endLittleBit = curTime.tv_usec;
-	double result = 1000000.0 * (endBigBit - bigBit);
-	result += endLittleBit - littleBit;
-	result /= 1000000.0;
-	if (reset) {
-		bigBit = endBigBit;
-		littleBit = endLittleBit;
-	}
-	return result;
 }
 
 //----------------- Platform -----------------------------------------------------------------------
