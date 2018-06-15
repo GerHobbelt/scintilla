@@ -71,6 +71,9 @@
 
 #endif
 
+#include <vector>
+#include <string_view>
+
 namespace Scintilla {
 
 typedef float XYPOSITION;
