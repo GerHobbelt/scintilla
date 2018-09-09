@@ -264,7 +264,8 @@
     <ClCompile Include="..\onigmo\regversion.c" />
     <ClCompile Include="..\onigmo\st.c" />
     <ClCompile Include="..\scionigmo\OnigmoRegExEngine.cxx" />
-    <ClCompile Include="lexers\LexAHK.cxx" />
+    <ClCompile Include="..\sciXlexers\LexAHK.cxx" />
+    <ClCompile Include="..\sciXlexers\LexAHKL.cxx" />
     <ClCompile Include="lexers\LexAsm.cxx" />
     <ClCompile Include="lexers\LexAU3.cxx" />
     <ClCompile Include="lexers\LexAVS.cxx" />
@@ -345,7 +346,6 @@
     <ClCompile Include="src\XPM.cxx" />
     <ClCompile Include="win32\HanjaDic.cxx" />
     <ClCompile Include="win32\PlatWin.cxx" />
-    <ClCompile Include="win32\ScintillaDLL.cxx" />
     <ClCompile Include="win32\ScintillaWin.cxx" />
   </ItemGroup>
   <ItemGroup>
@@ -362,6 +362,7 @@
     <ClInclude Include="..\onigmo\regparse.h" />
     <ClInclude Include="..\onigmo\st.h" />
     <ClInclude Include="..\onigmo\win32\config.h" />
+    <ClInclude Include="..\sciXlexers\SciXLexer.h" />
     <ClInclude Include="include\ILexer.h" />
     <ClInclude Include="include\ILoader.h" />
     <ClInclude Include="include\Platform.h" />
