@@ -1403,7 +1403,7 @@ void Editor::SetXYScroll(XYScrollPosition newXY) {
 	}
 }
 
-void Editor::ScrollRange(SelectionRange range) {
+void Editor::ScrollRange(const SelectionRange& range) {
 	SetXYScroll(XYScrollToMakeVisible(range, xysDefault));
 }
 
@@ -3826,15 +3826,17 @@ int Editor::KeyCommand(unsigned int iMessage) {
 		AddChar('\f');
 		break;
 	case SCI_ZOOMIN:
-		if (vs.zoomLevel < 20) {
-			vs.zoomLevel++;
+		// >>>>>>>>>>>>>>>   BEG NON STD SCI PATCH   >>>>>>>>>>>>>>>
+		if (vs.ZoomIn()) {
+		// <<<<<<<<<<<<<<<   END NON STD SCI PATCH   <<<<<<<<<<<<<<<
 			InvalidateStyleRedraw();
 			NotifyZoom();
 		}
 		break;
 	case SCI_ZOOMOUT:
-		if (vs.zoomLevel > -10) {
-			vs.zoomLevel--;
+		// >>>>>>>>>>>>>>>   BEG NON STD SCI PATCH   >>>>>>>>>>>>>>>
+		if (vs.ZoomOut()) {
+		// <<<<<<<<<<<<<<<   END NON STD SCI PATCH   <<<<<<<<<<<<<<<
 			InvalidateStyleRedraw();
 			NotifyZoom();
 		}
@@ -6283,7 +6285,9 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 		break;
 
 	case SCI_SETPRINTMAGNIFICATION:
-		view.printParameters.magnification = static_cast<int>(wParam);
+		// >>>>>>>>>>>>>>>   BEG NON STD SCI PATCH   >>>>>>>>>>>>>>>
+		view.printParameters.magnification = std::clamp(static_cast<int>(wParam), SC_MIN_ZOOM_LEVEL, SC_MAX_ZOOM_LEVEL);
+		// <<<<<<<<<<<<<<<   END NON STD SCI PATCH   <<<<<<<<<<<<<<<
 		break;
 
 	case SCI_GETPRINTMAGNIFICATION:
@@ -6782,6 +6786,14 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 
 	case SCI_GETIMEINTERACTION:
 		return imeInteraction;
+		
+// >>>>>>>>>>>>>>>   BEG NON STD SCI PATCH   >>>>>>>>>>>>>>>
+	case SCI_ISIMEOPEN:
+		return imeIsOpen;
+		
+	case SCI_ISIMEMODECJK:
+		return imeIsInModeCJK;
+// <<<<<<<<<<<<<<<   END NON STD SCI PATCH   <<<<<<<<<<<<<<<
 
 	case SCI_SETBIDIRECTIONAL:
 		// SCI_SETBIDIRECTIONAL is implemented on platform subclasses if they support bidirectional text.
@@ -7557,7 +7569,9 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 		break;
 
 	case SCI_SETZOOM: {
-			const int zoomLevel = static_cast<int>(wParam);
+			// >>>>>>>>>>>>>>>   BEG NON STD SCI PATCH   >>>>>>>>>>>>>>>
+			const int zoomLevel = std::clamp(static_cast<int>(wParam), SC_MIN_ZOOM_LEVEL, SC_MAX_ZOOM_LEVEL);
+			// <<<<<<<<<<<<<<<   END NON STD SCI PATCH   <<<<<<<<<<<<<<<
 			if (zoomLevel != vs.zoomLevel) {
 				vs.zoomLevel = zoomLevel;
 				InvalidateStyleRedraw();
