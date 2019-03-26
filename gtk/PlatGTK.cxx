@@ -408,13 +408,13 @@ void SurfaceImpl::LineTo(int x_, int y_) {
 			// Horizontal or vertical lines can be more precisely drawn as a filled rectangle
 			int xEnd = x_ - xDelta;
 			int left = std::min(x, xEnd);
-			int width = abs(x - xEnd) + 1;
+			int width = std::abs(x - xEnd) + 1;
 			int yEnd = y_ - yDelta;
 			int top = std::min(y, yEnd);
-			int height = abs(y - yEnd) + 1;
+			int height = std::abs(y - yEnd) + 1;
 			cairo_rectangle(context, left, top, width, height);
 			cairo_fill(context);
-		} else if ((abs(xDiff) == abs(yDiff))) {
+		} else if ((std::abs(xDiff) == std::abs(yDiff))) {
 			// 45 degree slope
 			cairo_move_to(context, x + 0.5, y + 0.5);
 			cairo_line_to(context, x_ + 0.5 - xDelta, y_ + 0.5 - yDelta);
@@ -457,8 +457,8 @@ void SurfaceImpl::RectangleDraw(PRectangle rc, ColourDesired fore, ColourDesired
 void SurfaceImpl::FillRectangle(PRectangle rc, ColourDesired back) {
 	PenColour(back);
 	if (context && (rc.left < maxCoordinate)) {	// Protect against out of range
-		rc.left = lround(rc.left);
-		rc.right = lround(rc.right);
+		rc.left = std::round(rc.left);
+		rc.right = std::round(rc.right);
 		cairo_rectangle(context, rc.left, rc.top,
 	                     rc.right - rc.left, rc.bottom - rc.top);
 		cairo_fill(context);
@@ -635,8 +635,8 @@ std::unique_ptr<IScreenLineLayout> SurfaceImpl::Layout(const IScreenLine *) {
 std::string UTF8FromLatin1(std::string_view text) {
 	std::string utfForm(text.length()*2 + 1, '\0');
 	size_t lenU = 0;
-	for (size_t i=0; i<text.length(); i++) {
-		unsigned int uch = static_cast<unsigned char>(text[i]);
+	for (char ch : text) {
+		const unsigned char uch = ch;
 		if (uch < 0x80) {
 			utfForm[lenU++] = uch;
 		} else {

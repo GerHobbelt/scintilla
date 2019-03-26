@@ -149,7 +149,7 @@ static const gint nClipboardPasteTargets = ELEMENTS(clipboardPasteTargets);
 
 static const GdkDragAction actionCopyOrMove = static_cast<GdkDragAction>(GDK_ACTION_COPY | GDK_ACTION_MOVE);
 
-static GtkWidget *PWidget(Window &w) {
+static GtkWidget *PWidget(const Window &w) noexcept {
 	return static_cast<GtkWidget *>(w.GetID());
 }
 
@@ -1483,7 +1483,7 @@ void ScintillaGTK::GetSelection(GtkSelectionData *selection_data, guint info, Se
 		const char *charSet = ::CharacterSetID(text->characterSet);
 		if (*charSet) {
 			std::string tmputf = ConvertText(text->Data(), text->Length(), "UTF-8", charSet, false);
-			converted.reset(new SelectionText());
+			converted = std::make_unique<SelectionText>();
 			converted->Copy(tmputf, SC_CP_UTF8, 0, text->rectangular, false);
 			text = converted.get();
 		}
@@ -1681,8 +1681,8 @@ gint ScintillaGTK::PressThis(GdkEventButton *event) {
 		evbtn = gdk_event_copy(reinterpret_cast<GdkEvent *>(event));
 		buttonMouse = event->button;
 		Point pt;
-		pt.x = floor(event->x);
-		pt.y = floor(event->y);
+		pt.x = std::floor(event->x);
+		pt.y = std::floor(event->y);
 		PRectangle rcClient = GetClientRectangle();
 		//Platform::DebugPrintf("Press %0d,%0d in %0d,%0d %0d,%0d\n",
 		//	pt.x, pt.y, rcClient.left, rcClient.top, rcClient.right, rcClient.bottom);
@@ -1811,12 +1811,12 @@ gint ScintillaGTK::ScrollEvent(GtkWidget *widget, GdkEventScroll *event) {
 			sciThis->smoothScrollY += event->delta_y * smoothScrollFactor;
 			sciThis->smoothScrollX += event->delta_x * smoothScrollFactor;;
 			if (ABS(sciThis->smoothScrollY) >= 1.0) {
-				const int scrollLines = trunc(sciThis->smoothScrollY);
+				const int scrollLines = std::trunc(sciThis->smoothScrollY);
 				sciThis->ScrollTo(sciThis->topLine + scrollLines);
 				sciThis->smoothScrollY -= scrollLines;
 			}
 			if (ABS(sciThis->smoothScrollX) >= 1.0) {
-				const int scrollPixels = trunc(sciThis->smoothScrollX);
+				const int scrollPixels = std::trunc(sciThis->smoothScrollX);
 				sciThis->HorizontalScrollTo(sciThis->xOffset + scrollPixels);
 				sciThis->smoothScrollX -= scrollPixels;
 			}
