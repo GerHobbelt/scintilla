@@ -1903,6 +1903,9 @@ void Editor::FilterSelections() {
 
 // AddCharUTF inserts an array of bytes which may or may not be in UTF-8.
 void Editor::AddCharUTF(const char *s, unsigned int len, bool treatAsDBCS) {
+	if (len == 0) {
+		return;
+	}
 	FilterSelections();
 	{
 		UndoGroup ug(pdoc, (sel.Count() > 1) || !sel.Empty() || inOverstrike);
@@ -1973,12 +1976,14 @@ void Editor::AddCharUTF(const char *s, unsigned int len, bool treatAsDBCS) {
 		SetLastXChosen();
 	}
 
-	if (treatAsDBCS) {
-		NotifyChar((static_cast<unsigned char>(s[0]) << 8) |
-		        static_cast<unsigned char>(s[1]));
-	} else if (len > 0) {
-		int byte = static_cast<unsigned char>(s[0]);
-		if ((byte < 0xC0) || (1 == len)) {
+	int ch = static_cast<unsigned char>(s[0]);
+	if (treatAsDBCS || pdoc->dbcsCodePage != SC_CP_UTF8) {
+		if (len > 1) {
+			// DBCS code page or DBCS font character set.
+			ch = (ch << 8) | static_cast<unsigned char>(s[1]);
+		}
+	} else {
+		if ((ch < 0xC0) || (1 == len)) {
 			// Handles UTF-8 characters between 0x01 and 0x7F and single byte
 			// characters when not in UTF-8 mode.
 			// Also treats \0 and naked trail bytes 0x80 to 0xBF as valid
@@ -1986,10 +1991,10 @@ void Editor::AddCharUTF(const char *s, unsigned int len, bool treatAsDBCS) {
 		} else {
 			unsigned int utf32[1] = { 0 };
 			UTF32FromUTF8(std::string_view(s, len), utf32, std::size(utf32));
-			byte = utf32[0];
+			ch = utf32[0];
 		}
-		NotifyChar(byte);
 	}
+	NotifyChar(ch);
 
 	if (recordingMacro) {
 		NotifyMacroRecord(SCI_REPLACESEL, 0, reinterpret_cast<sptr_t>(s));
@@ -5793,11 +5798,10 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 			if (wParam == 0)
 				return 0;
 			char *ptr = CharPtrFromSPtr(lParam);
-			size_t iChar = 0;
-			for (; iChar < wParam - 1; iChar++)
-				ptr[iChar] = pdoc->CharAt(iChar);
-			ptr[iChar] = '\0';
-			return iChar;
+			const Sci_Position len = std::min<Sci_Position>(wParam - 1, pdoc->Length());
+			pdoc->GetCharRange(ptr, 0, len);
+			ptr[len] = '\0';
+			return len;
 		}
 
 	case SCI_SETTEXT: {
@@ -5885,15 +5889,14 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 				pdoc->LineStart(static_cast<Sci::Line>(wParam));
 			const Sci::Position lineEnd =
 				pdoc->LineStart(static_cast<Sci::Line>(wParam + 1));
+			// not NUL terminated
+			const Sci::Position len = lineEnd - lineStart;
 			if (lParam == 0) {
-				return lineEnd - lineStart;
+				return len;
 			}
 			char *ptr = CharPtrFromSPtr(lParam);
-			Sci::Position iPlace = 0;
-			for (Sci::Position iChar = lineStart; iChar < lineEnd; iChar++) {
-				ptr[iPlace++] = pdoc->CharAt(iChar);
-			}
-			return iPlace;
+			pdoc->GetCharRange(ptr, lineStart, len);
+			return len;
 		}
 
 	case SCI_GETLINECOUNT:
@@ -5927,10 +5930,10 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 				return selectedText.LengthWithTerminator();
 			} else {
 				char *ptr = CharPtrFromSPtr(lParam);
-				size_t iChar = 0;
-				if (selectedText.Length()) {
-					for (; iChar < selectedText.LengthWithTerminator(); iChar++)
-						ptr[iChar] = selectedText.Data()[iChar];
+				size_t iChar = selectedText.Length();
+				if (iChar) {
+					memcpy(ptr, selectedText.Data(), iChar);
+					ptr[iChar++] = '\0';
 				} else {
 					ptr[0] = '\0';
 				}
@@ -6361,8 +6364,8 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 			if (lParam == 0)
 				return 0;
 			Sci_TextRange *tr = static_cast<Sci_TextRange *>(PtrFromSPtr(lParam));
-			int iPlace = 0;
-			for (long iChar = tr->chrg.cpMin; iChar < tr->chrg.cpMax; iChar++) {
+			Sci::Position iPlace = 0;
+			for (Sci::Position iChar = tr->chrg.cpMin; iChar < tr->chrg.cpMax; iChar++) {
 				tr->lpstrText[iPlace++] = pdoc->CharAt(iChar);
 				tr->lpstrText[iPlace++] = pdoc->StyleAt(iChar);
 			}
@@ -6439,11 +6442,9 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 			}
 			PLATFORM_ASSERT(wParam > 0);
 			char *ptr = CharPtrFromSPtr(lParam);
-			unsigned int iPlace = 0;
-			for (Sci::Position iChar = lineStart; iChar < lineEnd && iPlace < wParam - 1; iChar++) {
-				ptr[iPlace++] = pdoc->CharAt(iChar);
-			}
-			ptr[iPlace] = '\0';
+			const Sci::Position len = std::min<uptr_t>(lineEnd - lineStart, wParam - 1);
+			pdoc->GetCharRange(ptr, lineStart, len);
+			ptr[len] = '\0';
 			return sel.MainCaret() - lineStart;
 		}
 
@@ -7215,6 +7216,14 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 
 	case SCI_FOLDDISPLAYTEXTGETSTYLE:
 		return foldDisplayTextStyle;
+
+	case SCI_SETDEFAULTFOLDDISPLAYTEXT:
+		SetDefaultFoldDisplayText(CharPtrFromSPtr(lParam));
+		Redraw();
+		break;
+
+	case SCI_GETDEFAULTFOLDDISPLAYTEXT:
+		return StringResult(lParam, GetDefaultFoldDisplayText());
 
 	case SCI_TOGGLEFOLD:
 		FoldLine(static_cast<Sci::Line>(wParam), SC_FOLDACTION_TOGGLE);

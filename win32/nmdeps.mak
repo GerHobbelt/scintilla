@@ -491,6 +491,9 @@ $(DIR_O)/Style.obj: \
 $(DIR_O)/UniConversion.obj: \
 	../src/UniConversion.cxx \
 	../src/UniConversion.h
+$(DIR_O)/UniqueString.obj: \
+	../src/UniqueString.cxx \
+	../src/UniqueString.h
 $(DIR_O)/ViewStyle.obj: \
 	../src/ViewStyle.cxx \
 	../include/Platform.h \
@@ -1959,6 +1962,14 @@ $(DIR_O)/LexVisualProlog.obj: \
 	../lexlib/CharacterCategory.h \
 	../lexlib/LexerModule.h \
 	../lexlib/OptionSet.h \
+	../lexlib/DefaultLexer.h
+$(DIR_O)/LexX12.obj: \
+	../lexers/LexX12.cxx \
+	../include/ILexer.h \
+	../include/Sci_Position.h \
+	../include/Scintilla.h \
+	../include/SciLexer.h \
+	../lexlib/LexerModule.h \
 	../lexlib/DefaultLexer.h
 $(DIR_O)/LexYAML.obj: \
 	../lexers/LexYAML.cxx \

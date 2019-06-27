@@ -449,6 +449,9 @@ Style.o: \
 UniConversion.o: \
 	../src/UniConversion.cxx \
 	../src/UniConversion.h
+UniqueString.o: \
+	../src/UniqueString.cxx \
+	../src/UniqueString.h
 ViewStyle.o: \
 	../src/ViewStyle.cxx \
 	../include/Platform.h \
@@ -1917,6 +1920,14 @@ LexVisualProlog.o: \
 	../lexlib/CharacterCategory.h \
 	../lexlib/LexerModule.h \
 	../lexlib/OptionSet.h \
+	../lexlib/DefaultLexer.h
+LexX12.o: \
+	../lexers/LexX12.cxx \
+	../include/ILexer.h \
+	../include/Sci_Position.h \
+	../include/Scintilla.h \
+	../include/SciLexer.h \
+	../lexlib/LexerModule.h \
 	../lexlib/DefaultLexer.h
 LexYAML.o: \
 	../lexers/LexYAML.cxx \
