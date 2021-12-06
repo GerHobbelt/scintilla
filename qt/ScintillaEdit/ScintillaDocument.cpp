@@ -11,6 +11,7 @@
 
 #include "Platform.h"
 
+#include "ILoader.h"
 #include "ILexer.h"
 #include "Scintilla.h"
 
@@ -32,9 +33,7 @@
 #include "CaseFolder.h"
 #include "Document.h"
 
-#ifdef SCI_NAMESPACE
 using namespace Scintilla;
-#endif
 
 class WatcherHelper : public DocWatcher {
     ScintillaDocument *owner;
