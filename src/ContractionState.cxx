@@ -10,12 +10,14 @@
 #include <cstring>
 
 #include <stdexcept>
+#include <vector>
 #include <algorithm>
 #include <memory>
 
 #include "Platform.h"
 
 #include "Position.h"
+#include "UniqueString.h"
 #include "SplitVector.h"
 #include "Partitioning.h"
 #include "RunStyles.h"
@@ -38,7 +40,7 @@ void ContractionState::EnsureData() {
 		visible.reset(new RunStyles());
 		expanded.reset(new RunStyles());
 		heights.reset(new RunStyles());
-		foldDisplayTexts.reset(new SparseVector<const char *>());
+		foldDisplayTexts.reset(new SparseVector<UniqueString>());
 		displayLines.reset(new Partitioning(4));
 		InsertLines(0, linesInDocument);
 	}
@@ -110,7 +112,7 @@ void ContractionState::InsertLine(Sci::Line lineDoc) {
 		heights->InsertSpace(lineDoc, 1);
 		heights->SetValueAt(lineDoc, 1);
 		foldDisplayTexts->InsertSpace(lineDoc, 1);
-		foldDisplayTexts->SetValueAt(lineDoc, NULL);
+		foldDisplayTexts->SetValueAt(lineDoc, nullptr);
 		Sci::Line lineDisplay = DisplayFromDoc(lineDoc);
 		displayLines->InsertPartition(lineDoc, lineDisplay);
 		displayLines->InsertText(lineDoc, 1);
@@ -190,14 +192,14 @@ bool ContractionState::HiddenLines() const {
 
 const char *ContractionState::GetFoldDisplayText(Sci::Line lineDoc) const {
 	Check();
-	return foldDisplayTexts->ValueAt(lineDoc);
+	return foldDisplayTexts->ValueAt(lineDoc).get();
 }
 
 bool ContractionState::SetFoldDisplayText(Sci::Line lineDoc, const char *text) {
 	EnsureData();
-	const char *foldText = foldDisplayTexts->ValueAt(lineDoc);
-	if (!foldText || 0 != strcmp(text, foldText)) {
-		foldDisplayTexts->SetValueAt(lineDoc, text);
+	const char *foldText = foldDisplayTexts->ValueAt(lineDoc).get();
+	if (!foldText || !text || 0 != strcmp(text, foldText)) {
+		foldDisplayTexts->SetValueAt(lineDoc, UniqueStringCopy(text));
 		Check();
 		return true;
 	} else {

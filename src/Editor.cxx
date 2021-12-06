@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <forward_list>
 #include <algorithm>
 #include <memory>
 
@@ -27,6 +28,7 @@
 
 #include "StringCopy.h"
 #include "Position.h"
+#include "UniqueString.h"
 #include "SplitVector.h"
 #include "Partitioning.h"
 #include "RunStyles.h"
