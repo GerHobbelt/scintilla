@@ -12,8 +12,6 @@
  * This file is dual licensed under LGPL v2.1 and the Scintilla license (http://www.scintilla.org/License.txt).
  */
 
-#include <sys/time.h>
-
 #include <cstddef>
 #include <cstdlib>
 #include <cassert>
@@ -24,6 +22,8 @@
 #include <vector>
 #include <map>
 #include <memory>
+
+#include <sys/time.h>
 
 #import <Foundation/NSGeometry.h>
 
@@ -85,19 +85,6 @@ inline PRectangle CGRectToPRectangle(const CGRect& rect)
   rc.right = (int)(rect.origin.x + rect.size.width + 0.5);
   rc.bottom = (int)(rect.origin.y + rect.size.height + 0.5);
   return rc;
-}
-
-//----------------- Point --------------------------------------------------------------------------
-
-/**
- * Converts a point given as a long into a native Point structure.
- */
-Scintilla::Point Scintilla::Point::FromLong(long lpoint)
-{
-  return Scintilla::Point(
-                          Platform::LowShortFromLong(lpoint),
-                          Platform::HighShortFromLong(lpoint)
-                          );
 }
 
 //----------------- Font ---------------------------------------------------------------------------
@@ -982,7 +969,7 @@ void SurfaceImpl::MeasureWidths(Font &font_, const char *s, int len, XYPOSITION 
 	} else if (codePage) {
 		int ui = 0;
 		for (int i=0;i<len;) {
-			size_t lenChar = Platform::IsDBCSLeadByte(codePage, s[i]) ? 2 : 1;
+			size_t lenChar = DBCSIsLeadByte(codePage, s[i]) ? 2 : 1;
 			CGFloat xPosition = CTLineGetOffsetForStringIndex(mLine, ui+1, NULL);
 			for (unsigned int bytePos=0; (bytePos<lenChar) && (i<len); bytePos++) {
 				positions[i++] = static_cast<XYPOSITION>(xPosition);
@@ -1048,15 +1035,6 @@ XYPOSITION SurfaceImpl::InternalLeading(Font &) {
   return 0;
 }
 
-XYPOSITION SurfaceImpl::ExternalLeading(Font &font_) {
-  if (!font_.GetID())
-    return 1;
-
-	float leading = static_cast<QuartzTextStyle*>( font_.GetID() )->getLeading();
-	return leading + 0.5f;
-
-}
-
 XYPOSITION SurfaceImpl::Height(Font &font_) {
 
 	return Ascent(font_) + Descent(font_);
@@ -1106,14 +1084,6 @@ Window::~Window()
 }
 
 // Window::Destroy needs to see definition of ListBoxImpl so is located after ListBoxImpl
-
-//--------------------------------------------------------------------------------------------------
-
-bool Window::HasFocus()
-{
-  NSView* container = static_cast<NSView*>(wid);
-  return [[container window] firstResponder] == container;
-}
 
 //--------------------------------------------------------------------------------------------------
 
@@ -1307,22 +1277,6 @@ void Window::SetCursor(Cursor curs)
 
 //--------------------------------------------------------------------------------------------------
 
-void Window::SetTitle(const char* s)
-{
-  if (wid)
-  {
-    id idWin = static_cast<id>(wid);
-    if ([idWin isKindOfClass: [NSWindow class]])
-    {
-      NSWindow* win = idWin;
-      NSString* sTitle = [NSString stringWithUTF8String:s];
-      [win setTitle:sTitle];
-    }
-  }
-}
-
-//--------------------------------------------------------------------------------------------------
-
 PRectangle Window::GetMonitorRect(Point)
 {
   if (wid)
@@ -1385,7 +1339,9 @@ static NSImage* ImageFromXPM(XPM* pxpm)
 
 namespace {
 
-// unnamed namespace hides IListBox interface
+// Unnamed namespace hides local IListBox interface.
+// IListBox is used to cross languages to send events from Objective C++
+// AutoCompletionDelegate and AutoCompletionDataSource to C++ ListBoxImpl.
 
 class IListBox {
 public:
@@ -1393,19 +1349,44 @@ public:
   virtual NSImage* ImageForRow(NSInteger row) = 0;
   virtual NSString* TextForRow(NSInteger row) = 0;
   virtual void DoubleClick() = 0;
+  virtual void SelectionChange() = 0;
 };
 
-} // unnamed namespace
+}
+
+//----------------- AutoCompletionDelegate ---------------------------------------------------------
+
+// AutoCompletionDelegate is an Objective C++ class so it can implement
+// NSTableViewDelegate and receive tableViewSelectionDidChange events.
+
+@interface AutoCompletionDelegate : NSObject <NSTableViewDelegate> {
+	IListBox *box;
+}
+
+@property IListBox *box;
+
+@end
+
+@implementation AutoCompletionDelegate
+
+@synthesize box;
+
+- (void) tableViewSelectionDidChange: (NSNotification *) notification {
+#pragma unused(notification)
+	if (box) {
+		box->SelectionChange();
+	}
+}
+
+@end
 
 //----------------- AutoCompletionDataSource -------------------------------------------------------
 
-@interface AutoCompletionDataSource :
-NSObject
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5
-<NSTableViewDataSource>
-#endif
-{
-  IListBox* box;
+// AutoCompletionDataSource provides data to display in the list box.
+// It is also the target of the NSTableView so it receives double clicks.
+
+@interface AutoCompletionDataSource : NSObject <NSTableViewDataSource> {
+	IListBox *box;
 }
 
 @property IListBox* box;
@@ -1535,10 +1516,10 @@ private:
   NSTableColumn* colIcon;
   NSTableColumn* colText;
   AutoCompletionDataSource* ds;
+  AutoCompletionDelegate *acd;
 
   LinesData ld;
-  CallBackAction doubleClickAction;
-  void* doubleClickActionData;
+  IListBoxDelegate *delegate;
 
 public:
   ListBoxImpl() :
@@ -1555,8 +1536,8 @@ public:
     colIcon(nil),
     colText(nil),
     ds(nil),
-    doubleClickAction(nullptr),
-    doubleClickActionData(nullptr)
+    acd(nil),
+    delegate(nullptr)
   {
     images = [[NSMutableDictionary alloc] init];
   }
@@ -1582,10 +1563,8 @@ public:
   void RegisterImage(int type, const char* xpm_data) override;
   void RegisterRGBAImage(int type, int width, int height, const unsigned char *pixelsImage) override;
   void ClearRegisteredImages() override;
-  void SetDoubleClickAction(CallBackAction action, void* data) override
-  {
-    doubleClickAction = action;
-    doubleClickActionData = data;
+	void SetDelegate(IListBoxDelegate *lbDelegate) override {
+		delegate = lbDelegate;
   }
   void SetList(const char* list, char separator, char typesep) override;
 
@@ -1597,6 +1576,7 @@ public:
   NSImage* ImageForRow(NSInteger row) override;
   NSString* TextForRow(NSInteger row) override;
   void DoubleClick() override;
+  void SelectionChange() override;
 };
 
 void ListBoxImpl::Create(Window& /*parent*/, int /*ctrlID*/, Scintilla::Point pt,
@@ -1634,6 +1614,9 @@ void ListBoxImpl::Create(Window& /*parent*/, int /*ctrlID*/, Scintilla::Point pt
   ds = [[AutoCompletionDataSource alloc] init];
   [ds setBox:this];
   [table setDataSource: ds];	// Weak reference
+  acd = [[AutoCompletionDelegate alloc] init];
+  [acd setBox: this];
+  [table setDelegate: acd];
   [scroller setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
   [[winLB contentView] addSubview: scroller];
 
@@ -1722,6 +1705,8 @@ void ListBoxImpl::ReleaseViews()
   colIcon = nil;
   [colText release ];
   colText = nil;
+  [acd release];
+  acd = nil;
   [ds release];
   ds = nil;
 }
@@ -1875,17 +1860,25 @@ NSString* ListBoxImpl::TextForRow(NSInteger row)
   return sTitle;
 }
 
-void ListBoxImpl::DoubleClick()
-{
-  if (doubleClickAction)
-  {
-    doubleClickAction(doubleClickActionData);
+void ListBoxImpl::DoubleClick() {
+	if (delegate) {
+		ListBoxEvent event(ListBoxEvent::EventType::doubleClick);
+		delegate->ListNotify(&event);
+	}
+}
+
+void ListBoxImpl::SelectionChange() {
+	if (delegate) {
+		ListBoxEvent event(ListBoxEvent::EventType::selectionChange);
+		delegate->ListNotify(&event);
   }
 }
 
 } // unnamed namespace
 
 //----------------- ListBox ------------------------------------------------------------------------
+
+// ListBox is implemented by the ListBoxImpl class.
 
 ListBox::ListBox()
 {
@@ -1915,8 +1908,7 @@ void Window::Destroy()
     id idWin = static_cast<id>(wid);
     if ([idWin isKindOfClass: [NSWindow class]])
     {
-      NSWindow* win = static_cast<NSWindow*>(idWin);
-      [win release];
+      [idWin close];
     }
   }
   wid = 0;
@@ -2059,93 +2051,6 @@ unsigned int Platform::DoubleClickTime()
 
 //--------------------------------------------------------------------------------------------------
 
-bool Platform::MouseButtonBounce()
-{
-  return false;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-/**
- * Helper method for the backend to reach through to the scintilla window.
- */
-long Platform::SendScintilla(WindowID w, unsigned int msg, unsigned long wParam, long lParam)
-{
-  return scintilla_send_message(w, msg, wParam, lParam);
-}
-
-//--------------------------------------------------------------------------------------------------
-
-/**
- * Helper method for the backend to reach through to the scintilla window.
- */
-long Platform::SendScintillaPointer(WindowID w, unsigned int msg, unsigned long wParam, void *lParam)
-{
-  return scintilla_send_message(w, msg, wParam, (long) lParam);
-}
-
-//--------------------------------------------------------------------------------------------------
-
-bool Platform::IsDBCSLeadByte(int codePage, char ch)
-{
-  // Byte ranges found in Wikipedia articles with relevant search strings in each case
-  unsigned char uch = static_cast<unsigned char>(ch);
-  switch (codePage)
-  {
-  case 932:
-    // Shift_jis
-    return ((uch >= 0x81) && (uch <= 0x9F)) ||
-        ((uch >= 0xE0) && (uch <= 0xFC));
-        // Lead bytes F0 to FC may be a Microsoft addition.
-  case 936:
-    // GBK
-    return (uch >= 0x81) && (uch <= 0xFE);
-  case 949:
-    // Korean Wansung KS C-5601-1987
-    return (uch >= 0x81) && (uch <= 0xFE);
-  case 950:
-    // Big5
-    return (uch >= 0x81) && (uch <= 0xFE);
-  case 1361:
-    // Korean Johab KS C-5601-1992
-    return
-      ((uch >= 0x84) && (uch <= 0xD3)) ||
-      ((uch >= 0xD8) && (uch <= 0xDE)) ||
-      ((uch >= 0xE0) && (uch <= 0xF9));
-  }
-  return false;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-int Platform::DBCSCharLength(int /* codePage */, const char* /* s */)
-{
-  // DBCS no longer uses this.
-  return 1;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-int Platform::DBCSCharMaxLength()
-{
-  return 2;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-int Platform::Minimum(int a, int b)
-{
-  return (a < b) ? a : b;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-int Platform::Maximum(int a, int b) {
-  return (a > b) ? a : b;
-}
-
-//--------------------------------------------------------------------------------------------------
-
 //#define TRACE
 #ifdef TRACE
 
@@ -2198,17 +2103,6 @@ void Platform::Assert(const char *c, const char *file, int line)
   // Jump into debugger in assert on Mac (CL269835)
   ::Debugger();
 #endif
-}
-
-//--------------------------------------------------------------------------------------------------
-
-int Platform::Clamp(int val, int minVal, int maxVal)
-{
-  if (val > maxVal)
-    val = maxVal;
-  if (val < minVal)
-    val = minVal;
-  return val;
 }
 
 //----------------- DynamicLibrary -----------------------------------------------------------------

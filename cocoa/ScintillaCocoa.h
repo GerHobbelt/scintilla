@@ -25,6 +25,7 @@
 #include <map>
 #include <memory>
 
+#include "ILoader.h"
 #include "ILexer.h"
 
 #ifdef SCI_LEXER
@@ -42,7 +43,6 @@
 #include "CallTip.h"
 #include "KeyMap.h"
 #include "Indicator.h"
-#include "XPM.h"
 #include "LineMarker.h"
 #include "Style.h"
 #include "ViewStyle.h"
@@ -52,6 +52,7 @@
 #include "Document.h"
 #include "CaseConvert.h"
 #include "UniConversion.h"
+#include "DBCS.h"
 #include "Selection.h"
 #include "PositionCache.h"
 #include "EditModel.h"
@@ -107,8 +108,8 @@ private:
 
   bool GetPasteboardData(NSPasteboard* board, SelectionText* selectedText);
   void SetPasteboardData(NSPasteboard* board, const SelectionText& selectedText);
-  int TargetAsUTF8(char *text);
-  int EncodedFromUTF8(char *utf8, char *encoded) const;
+  ptrdiff_t TargetAsUTF8(char *text);
+  ptrdiff_t EncodedFromUTF8(char *utf8, char *encoded) const;
 
   int scrollSpeed;
   int scrollTicks;
@@ -151,7 +152,6 @@ public:
 
   sptr_t DefWndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) override;
   void TickFor(TickReason reason) override;
-  bool FineTickerAvailable() override;
   bool FineTickerRunning(TickReason reason) override;
   void FineTickerStart(TickReason reason, int millis, int tolerance) override;
   void FineTickerCancel(TickReason reason) override;

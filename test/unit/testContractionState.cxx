@@ -1,5 +1,6 @@
 // Unit Tests for Scintilla internal data structures
 
+#include <cstddef>
 #include <cstring>
 
 #include <stdexcept>
@@ -17,6 +18,8 @@
 #include "ContractionState.h"
 
 #include "catch.hpp"
+
+using namespace Scintilla;
 
 // Test ContractionState.
 

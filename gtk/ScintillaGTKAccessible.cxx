@@ -84,6 +84,7 @@
 // ScintillaGTK.h and stuff it needs
 #include "Platform.h"
 
+#include "ILoader.h"
 #include "ILexer.h"
 #include "Scintilla.h"
 #include "ScintillaWidget.h"
@@ -104,7 +105,6 @@
 #include "CallTip.h"
 #include "KeyMap.h"
 #include "Indicator.h"
-#include "XPM.h"
 #include "LineMarker.h"
 #include "Style.h"
 #include "ViewStyle.h"
@@ -127,9 +127,7 @@
 #include "ScintillaGTK.h"
 #include "ScintillaGTKAccessible.h"
 
-#ifdef SCI_NAMESPACE
 using namespace Scintilla;
-#endif
 
 struct ScintillaObjectAccessiblePrivate {
 	ScintillaGTKAccessible *pscin;

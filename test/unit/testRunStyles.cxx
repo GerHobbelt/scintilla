@@ -1,5 +1,6 @@
 // Unit Tests for Scintilla internal data structures
 
+#include <cstddef>
 #include <cstring>
 
 #include <stdexcept>
@@ -16,11 +17,13 @@
 
 #include "catch.hpp"
 
+using namespace Scintilla;
+
 // Test RunStyles.
 
 TEST_CASE("RunStyles") {
 
-	RunStyles rs;
+	RunStyles<int, int> rs;
 
 	SECTION("IsEmptyInitially") {
 		REQUIRE(0 == rs.Length());

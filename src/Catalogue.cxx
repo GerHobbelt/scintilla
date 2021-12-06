@@ -19,9 +19,7 @@
 #include "LexerModule.h"
 #include "Catalogue.h"
 
-#ifdef SCI_NAMESPACE
 using namespace Scintilla;
-#endif
 
 static std::vector<LexerModule *> lexerCatalogue;
 static int nextLanguage = SCLEX_AUTOMATIC+1;
@@ -131,11 +129,13 @@ int Scintilla_LinkLexers() {
 	LINK_LEXER(lmLiterateHaskell);
 	LINK_LEXER(lmLot);
 	LINK_LEXER(lmLout);
+	LINK_LEXER(lmLPeg);
 	LINK_LEXER(lmLua);
 	LINK_LEXER(lmMagikSF);
 	LINK_LEXER(lmMake);
 	LINK_LEXER(lmMarkdown);
 	LINK_LEXER(lmMatlab);
+	LINK_LEXER(lmMaxima);
 	LINK_LEXER(lmMETAPOST);
 	LINK_LEXER(lmMMIXAL);
 	LINK_LEXER(lmModula);

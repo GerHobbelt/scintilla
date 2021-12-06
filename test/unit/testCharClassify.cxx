@@ -12,10 +12,12 @@
 
 #include "catch.hpp"
 
+using namespace Scintilla;
+
 // Test CharClassify.
 
 class CharClassifyTest {
-	// Avoid warnings, deleted so never called. 
+	// Avoid warnings, deleted so never called.
 	CharClassifyTest(const CharClassifyTest &) = delete;
 protected:
 	CharClassifyTest() {

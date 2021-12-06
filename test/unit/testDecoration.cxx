@@ -1,5 +1,6 @@
 // Unit Tests for Scintilla internal data structures
 
+#include <cstddef>
 #include <cstring>
 
 #include <stdexcept>
@@ -18,6 +19,8 @@
 #include "catch.hpp"
 
 const int indicator=4;
+
+using namespace Scintilla;
 
 // Test Decoration.
 
@@ -68,8 +71,8 @@ TEST_CASE("DecorationList") {
 		decol.SetCurrentIndicator(indicator);
 		decol.InsertSpace(0, 9);
 		const int value = 59;
-		int position = 4;
-		int fillLength = 3;
+		Sci::Position position = 4;
+		Sci::Position fillLength = 3;
 		bool changed = decol.FillRange(position, value, fillLength);
 		REQUIRE(changed);
 		REQUIRE(position == 4);

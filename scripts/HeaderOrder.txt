@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <sys/time.h>
+#include <wchar.h>
 
 // C++ wrappers of C standard library
 #include <cstddef>
@@ -32,6 +32,8 @@
 // C++ standard library
 #include <stdexcept>
 #include <new>
+#include <utility>
+#include <tuple>
 #include <string>
 #include <vector>
 #include <deque>
@@ -39,11 +41,15 @@
 #include <set>
 #include <forward_list>
 #include <algorithm>
+#include <iterator>
 #include <functional>
 #include <memory>
 #include <regex>
 #include <iostream>
 #include <sstream>
+
+// POSIX
+#include <sys/time.h>
 
 // GTK+ headers
 #include <glib.h>
@@ -79,6 +85,7 @@
 #include "Platform.h"
 
 #include "Sci_Position.h"
+#include "ILoader.h"
 #include "ILexer.h"
 #include "Scintilla.h"
 #include "ScintillaWidget.h"
@@ -98,6 +105,7 @@
 #include "OptionSet.h"
 #include "SparseState.h"
 #include "SubStyles.h"
+#include "DefaultLexer.h"
 #include "LexerBase.h"
 #include "LexerSimple.h"
 #include "LexerNoExceptions.h"
@@ -129,6 +137,7 @@
 #include "CaseConvert.h"
 #include "UniConversion.h"
 #include "UnicodeFromUTF8.h"
+#include "DBCS.h"
 #include "Selection.h"
 #include "PositionCache.h"
 #include "FontQuality.h"
@@ -163,6 +172,9 @@
 #import "ScintillaView.h"
 #import "ScintillaCocoa.h"
 #import "PlatCocoa.h"
+
+// curses
+#include "ScintillaCurses.h"
 
 // Catch testing framework
 #include "catch.hpp"

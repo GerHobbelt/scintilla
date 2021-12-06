@@ -7,12 +7,12 @@
 #ifndef PLATCOCOA_H
 #define PLATCOCOA_H
 
-#include <sys/time.h>
-
 #include <cstdlib>
 #include <cassert>
 #include <cstring>
 #include <cstdio>
+
+#include <sys/time.h>
 
 #include <Cocoa/Cocoa.h>
 
@@ -107,7 +107,6 @@ public:
   XYPOSITION Ascent(Font &font_) override;
   XYPOSITION Descent(Font &font_) override;
   XYPOSITION InternalLeading(Font &font_) override;
-  XYPOSITION ExternalLeading(Font &font_) override;
   XYPOSITION Height(Font &font_) override;
   XYPOSITION AverageCharWidth(Font &font_) override;
 

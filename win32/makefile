@@ -1,8 +1,16 @@
 # Make file for Scintilla on Windows
 # Copyright 1998-2010 by Neil Hodgson <neilh@scintilla.org>
 # The License.txt file describes the conditions under which this software may be distributed.
-# This makefile assumes the MinGW32 version of GCC 4.x is used and changes will
+# This makefile assumes the MinGW32 version of GCC 4.8+ is used and changes will
 # be needed to use other compilers.
+
+.SUFFIXES: .cxx
+
+DIR_BIN=../bin
+
+COMPONENT = $(DIR_BIN)/Scintilla.dll
+LEXCOMPONENT = $(DIR_BIN)/SciLexer.dll
+LIBSCI = $(DIR_BIN)/libscintilla.a
 
 ifdef CLANG
 # Common location for 32-bit clang on Windows
@@ -16,21 +24,17 @@ STRIPOPTION = -s
 CXXSTD = gnu++0x
 endif
 
-.SUFFIXES: .cxx
 ifeq ($(OS),Windows_NT)
-DEL = del /q
+DEL = $(if $(wildcard $(dir $(SHELL))rm.exe), $(dir $(SHELL))rm.exe -f, del /q)
 else
 DEL = rm -f
 endif
 RANLIB ?= ranlib
 WINDRES ?= windres
 
-COMPONENT = ../bin/Scintilla.dll
-LEXCOMPONENT = ../bin/SciLexer.dll
-LEXLIB = Lexers.a
-
 vpath %.h ../src ../include ../lexlib
 vpath %.cxx ../src ../lexlib ../lexers
+vpath %.c ../lua/src
 
 LDFLAGS=-shared -static -mwindows $(LDMINGW)
 LIBS=-lgdi32 -luser32 -limm32 -lole32 -luuid -loleaut32 -lmsimg32 $(LIBSMINGW)
@@ -56,13 +60,26 @@ CXXFLAGS=-DNDEBUG -Os $(CXXBASEFLAGS)
 STRIPFLAG=$(STRIPOPTION)
 endif
 
+all:	$(COMPONENT) $(LEXCOMPONENT) $(LIBSCI)
+
+clean:
+	$(DEL) *.exe *.o *.a *.obj *.dll *.res *.map *.plist
+
+ifdef LPEG_LEXER
+CXXFLAGS+=-DLPEG_LEXER -I ../lua/src
+LUAOBJS:=lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o linit.o \
+         llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o \
+         ltable.o ltm.o lundump.o lvm.o lzio.o \
+         lauxlib.o lbaselib.o lbitlib.o lcorolib.o ldblib.o liolib.o \
+         lmathlib.o loadlib.o loslib.o lstrlib.o ltablib.o lutf8lib.o \
+         lpcap.o lpcode.o lpprint.o lptree.o lpvm.o
+endif
+
 .cxx.o:
 	$(CXX) $(CXXFLAGS) $(REFLAGS) -c $<
 
-ALL:	$(COMPONENT) $(LEXCOMPONENT) $(LEXLIB) ScintillaWinS.o
-
-clean:
-	$(DEL) *.exe *.o *.obj *.dll *.res *.map *.plist
+.c.o:
+	$(CC) $(CFLAGS) -c $<
 
 analyze:
 	$(CXX) --analyze $(D2DFLAGS) $(CXXFLAGS) *.cxx ../src/*.cxx ../lexlib/*.cxx ../lexers/*.cxx
@@ -72,7 +89,7 @@ deps:
 
 LEXOBJS:=$(addsuffix .o,$(basename $(sort $(notdir $(wildcard ../lexers/Lex*.cxx)))))
 
-
+# Required for base Scintilla
 BASEOBJS = \
 	AutoComplete.o \
 	CallTip.o \
@@ -83,6 +100,7 @@ BASEOBJS = \
 	CharacterSet.o \
 	CharClassify.o \
 	ContractionState.o \
+	DBCS.o \
 	Decoration.o \
 	Document.o \
 	EditModel.o \
@@ -108,26 +126,33 @@ BASEOBJS = \
 
 SOBJS = ScintillaWin.o ScintillaBase.o $(BASEOBJS)
 
-$(COMPONENT): $(SOBJS) Scintilla.def
-	$(CXX) $(LDFLAGS) -o $@ $(STRIPFLAG) $(SOBJS) $(CXXFLAGS) $(LIBS)
-
-LOBJS = \
+# Required by lexers
+LEXLIBOBJS=\
 	Accessor.o \
 	Catalogue.o \
 	ExternalLexer.o \
+	DefaultLexer.o \
 	LexerBase.o \
 	LexerModule.o \
 	LexerSimple.o \
-	ScintillaWinL.o \
-	ScintillaBaseL.o \
 	StyleContext.o \
 	WordList.o \
-	$(BASEOBJS) \
-	$(LEXOBJS)
-$(LEXCOMPONENT): $(LOBJS) Scintilla.def
-	$(CXX) $(LDFLAGS) -o $@ $(STRIPFLAG) $(LOBJS) $(CXXFLAGS) $(LIBS)
 
-$(LEXLIB): $(LEXOBJS)
+# Required by libraries and DLLs that include lexing
+SCILEXOBJS=\
+	$(BASEOBJS) \
+	$(LEXLIBOBJS) \
+	$(LEXOBJS) \
+	$(LUAOBJS) \
+	ScintillaBaseL.o
+
+$(COMPONENT): $(SOBJS) Scintilla.def
+	$(CXX) $(LDFLAGS) -o $@ $(STRIPFLAG) $(SOBJS) $(CXXFLAGS) $(LIBS)
+
+$(LEXCOMPONENT): ScintillaWinL.o $(SCILEXOBJS) Scintilla.def
+	$(CXX) $(LDFLAGS) -o $@ $(STRIPFLAG) ScintillaWinL.o $(SCILEXOBJS) $(CXXFLAGS) $(LIBS)
+
+$(LIBSCI): ScintillaWinS.o $(SCILEXOBJS)
 	$(AR) rc $@ $^
 	$(RANLIB) $@
 

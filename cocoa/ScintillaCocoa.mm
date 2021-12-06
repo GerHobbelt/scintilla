@@ -939,16 +939,6 @@ void ScintillaCocoa::TickFor(TickReason reason)
 //--------------------------------------------------------------------------------------------------
 
 /**
- * Report that this Editor subclass has a working implementation of FineTickerStart.
- */
-bool ScintillaCocoa::FineTickerAvailable()
-{
-  return true;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-/**
  * Is a particular timer currently running?
  */
 bool ScintillaCocoa::FineTickerRunning(TickReason reason)
@@ -1219,7 +1209,8 @@ void ScintillaCocoa::ClaimSelection()
  */
 NSPoint ScintillaCocoa::GetCaretPosition()
 {
-  const Sci::Line line = pdoc->LineFromPosition(sel.RangeMain().caret.Position());
+  const Sci::Line line = static_cast<Sci::Line>(
+    pdoc->LineFromPosition(sel.RangeMain().caret.Position()));
   NSPoint result;
 
   result.y = line;
@@ -1244,7 +1235,7 @@ void ScintillaCocoa::DragScroll()
   }
 
   // TODO: does not work for wrapped lines, fix it.
-  Sci::Line line = pdoc->LineFromPosition(posDrag.Position());
+  Sci::Line line = static_cast<Sci::Line>(pdoc->LineFromPosition(posDrag.Position()));
   Sci::Line currentVisibleLine = cs.DisplayFromDoc(line);
   Sci::Line lastVisibleLine = std::min(topLine + LinesOnScreen(), cs.LinesDisplayed()) - 2;
 
@@ -1352,8 +1343,8 @@ void ScintillaCocoa::StartDrag()
   PRectangle client = GetTextRectangle();
   Sci::Position selStart = sel.RangeMain().Start().Position();
   Sci::Position selEnd = sel.RangeMain().End().Position();
-  Sci::Line startLine = pdoc->LineFromPosition(selStart);
-  Sci::Line endLine = pdoc->LineFromPosition(selEnd);
+  Sci::Line startLine = static_cast<Sci::Line>(pdoc->LineFromPosition(selStart));
+  Sci::Line endLine = static_cast<Sci::Line>(pdoc->LineFromPosition(selEnd));
   Point pt;
   long startPos, endPos, ep;
   PRectangle rcSel;
@@ -1389,7 +1380,7 @@ void ScintillaCocoa::StartDrag()
     }
   } else {
     rcSel.top = rcSel.bottom = rcSel.right = rcSel.left = -1;
-    for (int l = startLine; l <= endLine; l++) {
+    for (Sci::Line l = startLine; l <= endLine; l++) {
       startPos = WndProc(SCI_GETLINESELSTARTPOSITION, l, 0);
       endPos = WndProc(SCI_GETLINESELENDPOSITION, l, 0);
       if (endPos == startPos) continue;
@@ -1655,9 +1646,9 @@ bool ScintillaCocoa::GetPasteboardData(NSPasteboard* board, SelectionText* selec
 
 // Returns the target converted to UTF8.
 // Return the length in bytes.
-int ScintillaCocoa::TargetAsUTF8(char *text)
+ptrdiff_t ScintillaCocoa::TargetAsUTF8(char *text)
 {
-  const int targetLength = targetEnd - targetStart;
+  const Sci::Position targetLength = targetEnd - targetStart;
   if (IsUnicodeMode())
   {
     if (text)
@@ -1676,7 +1667,7 @@ int ScintillaCocoa::TargetAsUTF8(char *text)
     if (text)
       memcpy(text, tmputf.c_str(), tmputf.length());
     CFRelease(cfsVal);
-    return static_cast<int>(tmputf.length());
+    return static_cast<ptrdiff_t>(tmputf.length());
   }
   return targetLength;
 }
@@ -1706,7 +1697,7 @@ NSString *ScintillaCocoa::RangeTextAsString(NSRange rangePositions) const {
 
 // Return character range of a line.
 NSRange ScintillaCocoa::RangeForVisibleLine(NSInteger lineVisible) {
-  const Range posRangeLine = RangeDisplayLine(static_cast<int>(lineVisible));
+  const Range posRangeLine = RangeDisplayLine(static_cast<Sci::Line>(lineVisible));
   return CharactersFromPositions(NSMakeRange(posRangeLine.First(),
 					     posRangeLine.Last() - posRangeLine.First()));
 }
@@ -1716,7 +1707,7 @@ NSRange ScintillaCocoa::RangeForVisibleLine(NSInteger lineVisible) {
 // Returns visible line number of a text position in characters.
 NSInteger ScintillaCocoa::VisibleLineForIndex(NSInteger index) {
   const NSRange rangePosition = PositionsFromCharacters(NSMakeRange(index, 0));
-  const int lineVisible = DisplayFromPosition(static_cast<int>(rangePosition.location));
+  const Sci::Line lineVisible = DisplayFromPosition(static_cast<Sci::Position>(rangePosition.location));
   return lineVisible;
 }
 
@@ -1763,14 +1754,14 @@ NSRect ScintillaCocoa::GetBounds() const {
 
 // Translates a UTF8 string into the document encoding.
 // Return the length of the result in bytes.
-int ScintillaCocoa::EncodedFromUTF8(char *utf8, char *encoded) const
+ptrdiff_t ScintillaCocoa::EncodedFromUTF8(char *utf8, char *encoded) const
 {
-  const int inputLength = (lengthForEncode >= 0) ? lengthForEncode : static_cast<int>(strlen(utf8));
+  const size_t inputLength = (lengthForEncode >= 0) ? lengthForEncode : strlen(utf8);
   if (IsUnicodeMode())
   {
     if (encoded)
       memcpy(encoded, utf8, inputLength);
-    return inputLength;
+    return static_cast<ptrdiff_t>(inputLength);
   }
   else
   {
@@ -1783,7 +1774,7 @@ int ScintillaCocoa::EncodedFromUTF8(char *utf8, char *encoded) const
     if (encoded)
       memcpy(encoded, sEncoded.c_str(), sEncoded.length());
     CFRelease(cfsVal);
-    return static_cast<int>(sEncoded.length());
+    return static_cast<ptrdiff_t>(sEncoded.length());
   }
 }
 
@@ -1871,14 +1862,14 @@ void ScintillaCocoa::WillDraw(NSRect rect)
 {
   RefreshStyleData();
   PRectangle rcWillDraw = NSRectToPRectangle(rect);
-  const int posAfterArea = PositionAfterArea(rcWillDraw);
-  const int posAfterMax = PositionAfterMaxStyling(posAfterArea, true);
+  const Sci::Position posAfterArea = PositionAfterArea(rcWillDraw);
+  const Sci::Position posAfterMax = PositionAfterMaxStyling(posAfterArea, true);
   pdoc->StyleToAdjustingLineDuration(posAfterMax);
   StartIdleStyling(posAfterMax < posAfterArea);
   NotifyUpdateUI();
   if (WrapLines(WrapScope::wsVisible)) {
     // Wrap may have reduced number of lines so more lines may need to be styled
-    const int posAfterAreaWrapped = PositionAfterArea(rcWillDraw);
+    const Sci::Position posAfterAreaWrapped = PositionAfterArea(rcWillDraw);
     pdoc->EnsureStyledTo(posAfterAreaWrapped);
     // The wrapping process has changed the height of some lines so redraw all.
     Redraw();
@@ -2004,7 +1995,7 @@ void ScintillaCocoa::Resize()
 void ScintillaCocoa::UpdateForScroll() {
   Point ptOrigin = GetVisibleOriginInMain();
   xOffset = static_cast<int>(ptOrigin.x);
-  int newTop = Platform::Minimum(static_cast<int>(ptOrigin.y / vs.lineHeight), MaxScrollPos());
+  Sci::Line newTop = std::min(static_cast<Sci::Line>(ptOrigin.y / vs.lineHeight), MaxScrollPos());
   SetTopLine(newTop);
 }
 
@@ -2253,7 +2244,7 @@ bool ScintillaCocoa::KeyboardInput(NSEvent* event)
   {
     const UniChar originalKey = [input characterAtIndex: i];
     NSEventModifierFlags modifierFlags = [event modifierFlags];
-      
+
     UniChar key = KeyTranslate(originalKey, modifierFlags);
 
     bool consumed = false; // Consumed as command?
@@ -2412,7 +2403,9 @@ void ScintillaCocoa::MouseEntered(NSEvent* event)
 
     // Mouse location is given in screen coordinates and might also be outside of our bounds.
     Point location = ConvertPoint([event locationInWindow]);
-    ButtonMove(location);
+		ButtonMoveWithModifiers(location,
+					(int)([event timestamp] * 1000),
+					TranslateModifierFlags([event modifierFlags]));
   }
 }
 
@@ -2428,23 +2421,17 @@ void ScintillaCocoa::MouseExited(NSEvent* /* event */)
 void ScintillaCocoa::MouseDown(NSEvent* event)
 {
   Point location = ConvertPoint([event locationInWindow]);
-  NSTimeInterval time = [event timestamp];
-  bool command = ([event modifierFlags] & NSCommandKeyMask) != 0;
-  bool shift = ([event modifierFlags] & NSShiftKeyMask) != 0;
-  bool alt = ([event modifierFlags] & NSAlternateKeyMask) != 0;
-
-  ButtonDown(Point(location.x, location.y), (int) (time * 1000), shift, command, alt);
+	ButtonDownWithModifiers(location,
+				(int)([event timestamp] * 1000),
+				TranslateModifierFlags([event modifierFlags]));
 }
 
 void ScintillaCocoa::RightMouseDown(NSEvent *event)
 {
   Point location = ConvertPoint([event locationInWindow]);
-  NSTimeInterval time = [event timestamp];
-  bool command = ([event modifierFlags] & NSCommandKeyMask) != 0;
-  bool shift = ([event modifierFlags] & NSShiftKeyMask) != 0;
-  bool alt = ([event modifierFlags] & NSAlternateKeyMask) != 0;
-
-  RightButtonDownWithModifiers(Point(location.x, location.y), (int) (time * 1000), ModifierFlags(shift, command, alt));
+	RightButtonDownWithModifiers(location,
+				     (int)([event timestamp] * 1000),
+				     TranslateModifierFlags([event modifierFlags]));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -2453,17 +2440,16 @@ void ScintillaCocoa::MouseMove(NSEvent* event)
 {
   lastMouseEvent = event;
 
-  ButtonMoveWithModifiers(ConvertPoint([event locationInWindow]), TranslateModifierFlags([event modifierFlags]));
+  ButtonMoveWithModifiers(ConvertPoint([event locationInWindow]), (int)([event timestamp] * 1000), TranslateModifierFlags([event modifierFlags]));
 }
 
 //--------------------------------------------------------------------------------------------------
 
 void ScintillaCocoa::MouseUp(NSEvent* event)
 {
-  NSTimeInterval time = [event timestamp];
-  bool control = ([event modifierFlags] & NSControlKeyMask) != 0;
-
-  ButtonUp(ConvertPoint([event locationInWindow]), (int) (time * 1000), control);
+	ButtonUpWithModifiers(ConvertPoint([event locationInWindow]),
+		 (int)([event timestamp] * 1000),
+		 TranslateModifierFlags([event modifierFlags]));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -2505,7 +2491,7 @@ void ScintillaCocoa::SelectAll()
 
 void ScintillaCocoa::DeleteBackward()
 {
-  KeyDown(SCK_BACK, false, false, false, nil);
+  KeyDownWithModifiers(SCK_BACK, 0, nil);
 }
 
 void ScintillaCocoa::Cut()

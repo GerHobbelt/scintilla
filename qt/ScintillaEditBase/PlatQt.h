@@ -13,13 +13,12 @@
 
 #include "Platform.h"
 
+#include <QUrl>
 #include <QPaintDevice>
 #include <QPainter>
 #include <QHash>
 
-#ifdef SCI_NAMESPACE
 namespace Scintilla {
-#endif
 
 const char *CharacterSetID(int characterSet);
 
@@ -106,7 +105,6 @@ public:
 	XYPOSITION Ascent(Font &font) override;
 	XYPOSITION Descent(Font &font) override;
 	XYPOSITION InternalLeading(Font &font) override;
-	XYPOSITION ExternalLeading(Font &font) override;
 	XYPOSITION Height(Font &font) override;
 	XYPOSITION AverageCharWidth(Font &font) override;
 
@@ -125,8 +123,6 @@ public:
 	QPainter *GetPainter();
 };
 
-#ifdef SCI_NAMESPACE
 }
-#endif
 
 #endif
