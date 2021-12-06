@@ -104,7 +104,7 @@ public:
 	constexpr explicit Point(XYPOSITION x_=0, XYPOSITION y_=0) noexcept : x(x_), y(y_) {
 	}
 
-	static Point FromInts(int x_, int y_) noexcept {
+	static constexpr Point FromInts(int x_, int y_) noexcept {
 		return Point(static_cast<XYPOSITION>(x_), static_cast<XYPOSITION>(y_));
 	}
 
@@ -139,7 +139,7 @@ public:
 		left(left_), top(top_), right(right_), bottom(bottom_) {
 	}
 
-	static PRectangle FromInts(int left_, int top_, int right_, int bottom_) noexcept {
+	static constexpr PRectangle FromInts(int left_, int top_, int right_, int bottom_) noexcept {
 		return PRectangle(static_cast<XYPOSITION>(left_), static_cast<XYPOSITION>(top_),
 			static_cast<XYPOSITION>(right_), static_cast<XYPOSITION>(bottom_));
 	}
@@ -371,11 +371,11 @@ public:
 	virtual void Ellipse(PRectangle rc, ColourDesired fore, ColourDesired back)=0;
 	virtual void Copy(PRectangle rc, Point from, Surface &surfaceSource)=0;
 
-	virtual void DrawTextNoClip(PRectangle rc, Font &font_, XYPOSITION ybase, const char *s, int len, ColourDesired fore, ColourDesired back)=0;
-	virtual void DrawTextClipped(PRectangle rc, Font &font_, XYPOSITION ybase, const char *s, int len, ColourDesired fore, ColourDesired back)=0;
-	virtual void DrawTextTransparent(PRectangle rc, Font &font_, XYPOSITION ybase, const char *s, int len, ColourDesired fore)=0;
-	virtual void MeasureWidths(Font &font_, const char *s, int len, XYPOSITION *positions)=0;
-	virtual XYPOSITION WidthText(Font &font_, const char *s, int len)=0;
+	virtual void DrawTextNoClip(PRectangle rc, Font &font_, XYPOSITION ybase, const char *s, int len, ColourDesired fore, ColourDesired back) = 0;
+	virtual void DrawTextClipped(PRectangle rc, Font &font_, XYPOSITION ybase, const char *s, int len, ColourDesired fore, ColourDesired back) = 0;
+	virtual void DrawTextTransparent(PRectangle rc, Font &font_, XYPOSITION ybase, const char *s, int len, ColourDesired fore) = 0;
+	virtual void MeasureWidths(Font &font_, const char *s, int len, XYPOSITION *positions) = 0;
+	virtual XYPOSITION WidthText(Font &font_, const char *s, int len) = 0;
 	virtual XYPOSITION Ascent(Font &font_)=0;
 	virtual XYPOSITION Descent(Font &font_)=0;
 	virtual XYPOSITION InternalLeading(Font &font_)=0;

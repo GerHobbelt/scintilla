@@ -49,7 +49,7 @@
 
 using namespace Scintilla;
 
-Caret::Caret() :
+Caret::Caret() noexcept :
 	active(false), on(false), period(500) {}
 
 EditModel::EditModel() : braces{} {
@@ -94,4 +94,3 @@ const char *EditModel::GetFoldDisplayText(Sci::Line lineDoc) const {
 	const char *text = pcs->GetFoldDisplayText(lineDoc);
 	return text ? text : defaultFoldDisplayText.get();
 }
-

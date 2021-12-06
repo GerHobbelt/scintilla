@@ -1,4 +1,4 @@
--- Copyright 2006-2019 Robert Gieseke, Lars Otter. See License.txt.
+-- Copyright 2006-2020 Robert Gieseke, Lars Otter. See License.txt.
 -- ConTeXt LPeg lexer.
 
 local lexer = require('lexer')
@@ -12,32 +12,31 @@ local beginend = (P('begin') + 'end')
 local startstop = (P('start') + 'stop')
 
 -- Whitespace.
-local ws = token(lexer.WHITESPACE, lexer.space^1)
-lex:add_rule('whitespace', ws)
+lex:add_rule('whitespace', token(lexer.WHITESPACE, lexer.space^1))
 
 -- Comments.
-local comment = token(lexer.COMMENT, '%' * lexer.nonnewline^0)
-lex:add_rule('comment', comment)
+lex:add_rule('comment', token(lexer.COMMENT, lexer.to_eol('%')))
 
 -- Sections.
 local wm_section = word_match[[
   chapter part section subject subsection subsubject subsubsection subsubsubject
   subsubsubsection subsubsubsubject title
 ]]
-local section = token(lexer.CLASS,
-                      '\\' * (wm_section + (startstop * wm_section)))
+local section = token(lexer.CLASS, '\\' *
+  (wm_section + (startstop * wm_section)))
 lex:add_rule('section', section)
 
 -- TeX and ConTeXt mkiv environments.
-local environment = token(lexer.STRING,
-                          '\\' * (beginend + startstop) * lexer.alpha^1)
+local environment = token(lexer.STRING, '\\' * (beginend + startstop) *
+  lexer.alpha^1)
 lex:add_rule('environment', environment)
 
 -- Commands.
-local command = token(lexer.KEYWORD,
-                      '\\' * (lexer.alpha^1 * P('\\') * lexer.space^1 +
-                              lexer.alpha^1 +
-                              S('!"#$%&\',./;=[\\]_{|}~`^-')))
+local command = token(lexer.KEYWORD, '\\' * (
+  lexer.alpha^1 * P('\\') * lexer.space^1 +
+  lexer.alpha^1 +
+  S('!"#$%&\',./;=[\\]_{|}~`^-')
+))
 lex:add_rule('command', command)
 
 -- Operators.

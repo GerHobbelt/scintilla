@@ -1,4 +1,4 @@
--- Copyright 2016-2019 Alejandro Baez (https://keybase.io/baez). See License.txt.
+-- Copyright 2016-2020 Alejandro Baez (https://keybase.io/baez). See License.txt.
 -- PICO-8 lexer.
 -- http://www.lexaloffle.com/pico-8.php
 
@@ -20,7 +20,7 @@ lex:add_rule('keyword', token(lexer.KEYWORD, word_match[[
 lex:add_rule('identifier', token(lexer.IDENTIFIER, lexer.word))
 
 -- Comments
-lex:add_rule('comment', token(lexer.COMMENT, '//' * lexer.nonnewline_esc^0))
+lex:add_rule('comment', token(lexer.COMMENT, lexer.to_eol('//', true)))
 
 -- Numbers
 lex:add_rule('number', token(lexer.NUMBER, lexer.integer))

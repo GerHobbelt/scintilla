@@ -1,4 +1,4 @@
-// Copyright 2012-2019 Mitchell mitchell.att.foicica.com. See License.txt.
+// Copyright 2012-2020 Mitchell mitchell.att.foicica.com. See License.txt.
 // Header for Scintilla in a curses (terminal) environment.
 
 #ifndef SCINTILLACURSES_H
@@ -15,8 +15,9 @@ extern "C" {
  * Curses does not have to be initialized before calling this function.
  * @param callback A callback function for Scintilla notifications.
  */
-void *scintilla_new(void (*callback)(void *sci, int iMessage, void *wParam,
-                                     void *lParam));
+void *scintilla_new(
+  void (*callback)(void *sci, int iMessage, SCNotification *n, void *userdata),
+  void *userdata);
 /**
  * Returns the curses `WINDOW` associated with the given Scintilla window.
  * Curses must have been initialized prior to calling this function.
@@ -32,8 +33,8 @@ WINDOW *scintilla_get_window(void *sci);
  * @param wParam The first parameter.
  * @param lParam The second parameter.
  */
-sptr_t scintilla_send_message(void *sci, unsigned int iMessage, uptr_t wParam,
-                              sptr_t lParam);
+sptr_t scintilla_send_message(
+  void *sci, unsigned int iMessage, uptr_t wParam, sptr_t lParam);
 /**
  * Sends the specified key to the given Scintilla window for processing.
  * If it is not consumed, an SCNotification will be emitted.
@@ -64,8 +65,9 @@ void scintilla_send_key(void *sci, int key, bool shift, bool ctrl, bool alt);
  * @param alt Flag indicating whether or not the alt modifier key is pressed.
  * @return whether or not Scintilla handled the mouse event
  */
-bool scintilla_send_mouse(void *sci, int event, unsigned int time, int button,
-                          int y, int x, bool shift, bool ctrl, bool alt);
+bool scintilla_send_mouse(
+  void *sci, int event, unsigned int time, int button, int y, int x, bool shift,
+  bool ctrl, bool alt);
 /**
  * Copies the text of Scintilla's internal clipboard, not the primary and/or
  * secondary X selections, into the given buffer and returns the size of the

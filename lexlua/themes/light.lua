@@ -1,4 +1,4 @@
--- Copyright 2006-2019 Mitchell mitchell.att.foicica.com. See License.txt.
+-- Copyright 2006-2020 Mitchell mitchell.att.foicica.com. See License.txt.
 -- Light theme for Lua lexers.
 -- Contributions by Ana Balan.
 
@@ -51,11 +51,11 @@ property['color.light_red'] = '#C08080'
 property['color.light_blue'] = '#80CCFF'
 
 -- Default style.
-property['font'], property['fontsize'] = 'Bitstream Vera Sans Mono', 10
+property['font'], property['fontsize'] = 'Bitstream Vera Sans Mono', '10'
 if WIN32 then
   property['font'] = 'Courier New'
 elseif OSX then
-  property['font'], property['fontsize'] = 'Monaco', 12
+  property['font'], property['fontsize'] = 'Monaco', '12'
 end
 
 -- Predefined styles.

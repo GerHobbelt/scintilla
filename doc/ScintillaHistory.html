@@ -542,6 +542,9 @@
 	<td>Dejan Budimir</td>
       </tr><tr>
 	<td>Andreas Falkenhahn</td>
+	<td>Mark Reay</td>
+	<td>David Shuman</td>
+	<td>McLoo</td>
     </tr>
     </table>
     <p>
@@ -552,6 +555,132 @@
         <a href="http://sourceforge.net/projects/icon-collection/">
         Icons</a> Copyright(C) 1998 by Dean S. Jones<br />
       </li>
+    </ul>
+    <h3>
+       <a href="https://sourceforge.net/projects/scintilla/files/scintilla/3.20.0/scintilla3200.zip/download">Release 3.20.0</a>
+    </h3>
+    <ul>
+	<li>
+	Released 9 May 2020.
+	</li>
+	<li>
+	ILexerWithIdentity interface defined provisionally to support potential use of Lexilla.
+	The details of this interface may change before being stabilised in Scintilla 5.0.
+	</li>
+	<li>
+	SCI_LOADLEXERLIBRARY implemented on Cocoa.
+	</li>
+	<li>
+	Can build Scintilla with SCI_EMPTYCATALOGUE to avoid making lexers available.
+	</li>
+	<li>
+	Add methods for iterating through the marker handles and marker numbers on a line:
+	SCI_MARKERHANDLEFROMLINE and SCI_MARKERNUMBERFROMLINE.
+	<a href="https://sourceforge.net/p/scintilla/feature-requests/1344/">Feature #1344</a>.
+	</li>
+	<li>
+	Lua LPeg lexer supports multiple lexer paths via ';' in <code>lexer.lpeg.home</code> property,
+	or via multiple calls to new <code>SCI_PRIVATELEXERCALL(SCI_LOADLEXERLIBRARY, path)</code>.
+	</li>
+	<li>
+	Lua LPeg lexer no longer includes the <code>io</code> and <code>package</code> libraries,
+	improving sandbox safety.
+	</li>
+	<li>
+	Lua LPeg lexer Lua API switches to 1-based indices for style numbers, line numbers and positions.
+	The C++ <code>SCI_PRIVATELEXERCALL</code> interface is unaffected.
+	</li>
+	<li>
+	Lua LPeg lexer API deprecates <code>lexer.delimited_range()</code> and <code>lexer.nested_pair()</code>
+	in favor of new <code>lexer.range()</code>, and adds <code>lexer.to_eol()</code> and
+	<code>lexer.number</code>.
+	</li>
+	<li>
+	Lua LPeg lexer can return list of known lexers and style names for a given style number.
+	</li>
+	<li>
+	Lua LPeg lexer supports the <code>fold.compact</code> property.
+	</li>
+	<li>
+	Assembler lexers asm and as can change comment character with lexer.as.comment.character property.
+	<a href="https://sourceforge.net/p/scintilla/feature-requests/1314/">Feature #1314</a>.
+	</li>
+	<li>
+	Fix brace styling in Batch lexer so that brace matching works.
+	<a href="https://sourceforge.net/p/scintilla/bugs/1624/">Bug #1624</a>,
+	<a href="https://sourceforge.net/p/scintilla/bugs/1906/">Bug #1906</a>,
+	<a href="https://sourceforge.net/p/scintilla/bugs/1997/">Bug #1997</a>,
+	<a href="https://sourceforge.net/p/scintilla/bugs/2065/">Bug #2065</a>.
+	</li>
+	<li>
+	Change Perl lexer to style all line ends of comment lines in comment line style.
+	Previously, the last character was in default style which made the characters in
+	\r\n line ends have mismatching styles.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2164/">Bug #2164</a>.
+	</li>
+	<li>
+	Lexer and folder added for Raku language.
+	<a href="https://sourceforge.net/p/scintilla/feature-requests/1328/">Feature #1328</a>.
+	</li>
+	<li>
+	Added txt2tags Lua LPeg lexer.
+	</li>
+	<li>
+	Fixed incorrect grammar building for Lua LPeg lexers that embed themselves (e.g. PHP).
+	</li>
+	<li>
+	Add default argument for StyleContext::GetRelative.
+	<a href="https://sourceforge.net/p/scintilla/feature-requests/1336/">Feature #1336</a>.
+	</li>
+	<li>
+	With Qt on Win32 add support for line copy format on clipboard, compatible with Visual Studio.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2167/">Bug #2167</a>.
+	</li>
+	<li>
+	On Qt with default encoding (ISO 8859-1) fix bug where 'µ' (Micro Sign) case-insensitively matches '?'
+	<a href="https://sourceforge.net/p/scintilla/bugs/2168/">Bug #2168</a>.
+	</li>
+	<li>
+	On GTK with Wayland fix display of windowed IME.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2149/">Bug #2149</a>.
+	</li>
+	<li>
+	Don't clear clipboard before copying text with Qt.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2147/">Bug #2147</a>.
+	</li>
+	<li>
+	On Win32, remove support for CF_TEXT clipboard format as Windows will convert to
+	CF_UNICODETEXT.
+	</li>
+	<li>
+	Automatically scroll while dragging text.
+	<a href="https://sourceforge.net/p/scintilla/feature-requests/497/">Feature #497</a>.
+	</li>
+	<li>
+	On Win32, the numeric keypad with Alt pressed can be used to enter characters by number.
+	This can produce unexpected results in non-numlock mode when function keys are assigned.
+	Potentially problematic keys like Alt+KeypadUp are now ignored.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2152/">Bug #2152</a>.
+	</li>
+	<li>
+	Crash fixed with Direct2D on Win32 when updating driver.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2138/">Bug #2138</a>.
+	</li>
+	<li>
+	On Win32 fix handling Japanese IME input when both GCS_COMPSTR and
+	GCS_RESULTSTR set.
+	</li>
+	<li>
+	On GTK with Wayland fix display of windowed IME.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2149/">Bug #2149</a>.
+	</li>
+	<li>
+	Improve IME behaviour on GTK.
+	Set candidate position for windowed IME.
+	Improve location of candidate window.
+	Prevent movement of candidate window while typing.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2135/">Bug #2135</a>.
+	</li>
     </ul>
     <h3>
        <a href="https://sourceforge.net/projects/scintilla/files/scintilla/3.11.2/scintilla3112.zip/download">Release 3.11.2</a>
@@ -919,7 +1048,7 @@
 	Added "nim" lexer (SCLEX_NIM) for the Nim language which was previously called Nimrod.
 	For compatibility, the old "nimrod" lexer is still present but is deprecated and will be removed at the
 	next major version.
-	<a href="https://sourceforge.net/p/scintilla/feature-requests/1242/">Feature #1242.</a>
+	<a href="https://sourceforge.net/p/scintilla/feature-requests/1242/">Feature #1242</a>.
 	</li>
  	<li>
 	The Bash lexer implements substyles for multiple sets of keywords and supports SCI_PROPERTYNAMES.

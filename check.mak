@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Mitchell mitchell.att.foicica.com. See License.txt.
+# Copyright 2018-2020 Mitchell mitchell.att.foicica.com. See License.txt.
 # This makefile is used only for catching compile and test errors when
 # backporting fixes and features from the main branch of Scintilla. It likely
 # will not produce compiled targets that can be used by a Scintilla-based
@@ -11,8 +11,8 @@ INCLUDEDIRS = -Iinclude -Isrc -Ilexlib
 CC = gcc
 CXX = g++
 AR = ar
-CLANG_CC = clang --gcc-toolchain=$(shell pwd)/gcc/4.8.1
-CLANG_CXX = clang++ --gcc-toolchain=$(shell pwd)/gcc/4.8.1
+CLANG_CC = clang --gcc-toolchain=$(shell pwd)/gcc/4.8.4
+CLANG_CXX = clang++ --gcc-toolchain=$(shell pwd)/gcc/4.8.4
 CFLAGS = -pedantic -Wall
 CXXFLAGS = -std=c++11 -pedantic -pedantic-errors -DSCI_LEXER $(INCLUDEDIRS) \
            -DNDEBUG -Os -Wall
@@ -33,9 +33,10 @@ base_src_objs = AutoComplete.o CallTip.o CaseConvert.o CaseFolder.o \
                 PerLine.o PositionCache.o RESearch.o RunStyles.o \
                 ScintillaBase.o Selection.o Style.o UniConversion.o \
                 ViewStyle.o UniqueString.o XPM.o
-base_lexlib_objs = Accessor.o CharacterCategory.o CharacterSet.o LexerBase.o \
-                   LexerModule.o LexerNoExceptions.o LexerSimple.o \
-                   PropSetSimple.o StyleContext.o WordList.o
+base_lexlib_objs = Accessor.o CharacterCategory.o CharacterSet.o \
+                   DefaultLexer.o LexerBase.o LexerModule.o \
+                   LexerNoExceptions.o LexerSimple.o PropSetSimple.o \
+                   StyleContext.o WordList.o
 base_lexer_objs = $(addsuffix .o,$(basename $(sort $(notdir $(wildcard lexers/Lex*.cxx)))))
 
 win32_src_objs = $(addprefix win32/, $(base_src_objs))
@@ -68,23 +69,25 @@ curses_lexer_objs_clang = $(addprefix curses/clang-, $(base_lexer_objs))
 curses_plat_objs_clang = $(addprefix curses/clang-, $(notdir $(curses_plat_objs)))
 
 all: | /tmp/scintilla
-	$(MAKE) -C $| -f check.mak -j8 bin/scintilla_win32.a bin/scintilla_cocoa.a \
+	$(MAKE) -C $| -f check.mak -j4 bin/scintilla_win32.dll bin/scintilla_cocoa.a \
 	  bin/scintilla_gtk.a bin/clang-scintilla_gtk.a bin/scintilla_curses.a \
 		bin/clang-scintilla_curses.a qt qt-clang
 /tmp/scintilla:
 	cp -rs `pwd` $@
 	cp -r $@/qt $@/qt-clang
-	mkdir -p $@/gcc/4.8.1/include/c++/4.8.1
-	cp -rs /usr/include/c++/4.8.1/* $@/gcc/4.8.1/include/c++/4.8.1
-	cp -rs /usr/include/x86_64-linux-gnu/c++/4.8/* $@/gcc/4.8.1/include/c++/4.8.1
-	mkdir -p $@/gcc/4.8.1/lib/gcc/x86_64-linux-gnu/4.8.1
-	cp -rs /usr/lib/gcc/x86_64-linux-gnu/4.8.1/* \
-	  $@/gcc/4.8.1/lib/gcc/x86_64-linux-gnu/4.8.1/
+	mkdir -p $@/gcc/4.8.4/include/c++/4.8.4
+	cp -rs /usr/include/c++/4.8.4/* $@/gcc/4.8.4/include/c++/4.8.4
+	cp -rs /usr/include/x86_64-linux-gnu/c++/4.8/* $@/gcc/4.8.4/include/c++/4.8.4
+	mkdir -p $@/gcc/4.8.4/lib/gcc/x86_64-linux-gnu/4.8.4
+	cp -rs /usr/lib/gcc/x86_64-linux-gnu/4.8.4/* \
+	  $@/gcc/4.8.4/lib/gcc/x86_64-linux-gnu/4.8.4/
 
 # Windows platform objects.
-bin/scintilla_win32.a: $(win32_src_objs) $(win32_lexlib_objs) \
-                       $(win32_lexer_objs) $(win32_plat_objs)
-	$(CROSS_WIN32)$(AR) rc $@ $^
+# Note: build a DLL to test linking.
+bin/scintilla_win32.dll: $(win32_src_objs) $(win32_lexlib_objs) \
+                         $(win32_lexer_objs) $(win32_plat_objs)
+	$(CROSS_WIN32)$(CXX) -mwindows -shared -static -o $@ $^ -lgdi32 -luser32 \
+		-limm32 -lole32 -luuid -loleaut32 -lmsimg32 -lstdc++
 	touch $@
 $(win32_src_objs): win32/%.o: src/%.cxx
 $(win32_lexlib_objs): win32/%.o: lexlib/%.cxx
@@ -153,7 +156,7 @@ $(curses_lexlib_objs_clang): curses/clang-%.o: lexlib/%.cxx
 $(curses_lexer_objs_clang): curses/clang-%.o: lexers/%.cxx
 $(curses_plat_objs): curses/%.o: curses/%.cxx
 $(curses_plat_objs_clang): curses/clang-%.o: curses/%.cxx
-$(curses_src_objs) $(curses_lexlib_objs) $(curses_lexer_objs): CXX := $(LINUX_CXX)
+$(curses_src_objs) $(curses_lexlib_objs) $(curses_lexer_objs) $(curses_plat_objs): CXX := $(LINUX_CXX)
 $(curses_src_objs_clang) $(curses_lexlib_objs_clang) $(curses_lexer_objs_clang) $(curses_plat_objs_clang): CXX := $(CLANG_CXX)
 bin/scintilla_curses.a bin/clang-scintilla_curses.a:
 	ar rc $@ $^
@@ -165,6 +168,7 @@ $(curses_plat_objs) $(curses_plat_objs_clang):
 	$(CXX) -c $(CXXFLAGS) -DCURSES -Wno-unused-parameter $< -o $@
 
 # Qt platform objects. (Note: requires libqt4-dev qt4-qmake.)
+# Note: the Qt makefile produces shared libraries, so linking is tested.
 .PHONY: qt qt-clang
 qt: qt/ScintillaEditBase/Makefile
 qt-clang: qt-clang/ScintillaEditBase/Makefile
@@ -207,7 +211,14 @@ test: | /tmp/scintilla
 	make -C $|/test/unit CXX=$(LINUX_CXX) clean test
 	cd $|/test && lua5.1 test_lexlua.lua
 
-releasedir = /tmp/scintilla$(shell grep -o '[0-9]\+' version.txt)
+version = $(shell grep -o '[0-9]\+' version.txt)
+date = $(shell date +'%Y%m%d')
+gen:
+	@echo "Using version $(version) with date $(date)"
+	sed -i -e 's/content="[0-9]\+"/content="$(date)"/;' doc/index.html
+	cd scripts && python LexGen.py
+
+releasedir = /tmp/scintilla$(version)
 $(releasedir): ; hg archive $@
 zip: $(releasedir)
 	cd /tmp && tar czf $<.tgz $(notdir $<)

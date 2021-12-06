@@ -1,4 +1,4 @@
--- Copyright 2006-2019 Robert Gieseke. See License.txt.
+-- Copyright 2006-2020 Robert Gieseke. See License.txt.
 -- Sass CSS preprocessor LPeg lexer.
 -- http://sass-lang.com
 
@@ -9,7 +9,7 @@ local P, S = lpeg.P, lpeg.S
 local lex = lexer.new('sass', {inherit = lexer.load('css')})
 
 -- Line comments.
-lex:add_rule('line_comment', token(lexer.COMMENT, '//' * lexer.nonnewline^0))
+lex:add_rule('line_comment', token(lexer.COMMENT, lexer.to_eol('//')))
 
 -- Variables.
 lex:add_rule('variable', token(lexer.VARIABLE, '$' * (lexer.alnum + S('_-'))^1))

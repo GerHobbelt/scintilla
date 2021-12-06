@@ -27,7 +27,7 @@ function assert_default_styles(lex)
     local style = default_styles[i]
     assert(lex._TOKENSTYLES[style],
            string.format("style '%s' does not exist", style))
-    assert(lex._TOKENSTYLES[style] == i - 1, 'default styles out of order')
+    assert(lex._TOKENSTYLES[style] == i, 'default styles out of order')
   end
   local predefined_styles = {
     'default', 'linenumber', 'bracelight', 'bracebad', 'controlchar',
@@ -37,7 +37,7 @@ function assert_default_styles(lex)
     local style = predefined_styles[i]
     assert(lex._TOKENSTYLES[style],
            string.format("style '%s' does not exist", style))
-    assert(lex._TOKENSTYLES[style] == i + 31, 'predefined styles out of order')
+    assert(lex._TOKENSTYLES[style] == i + 32, 'predefined styles out of order')
   end
 end
 
@@ -159,7 +159,7 @@ function assert_fold_points(lex, code, expected_fold_points, initial_style)
     })
   end
   lexer.property['fold'] = 1
-  local levels = lex:fold(code, 0, 1, lexer.FOLD_BASE)
+  local levels = lex:fold(code, 1, 1, lexer.FOLD_BASE)
   local j = 1
   for i = 1, #levels do
     if i == expected_fold_points[j] then
@@ -178,13 +178,50 @@ end
 
 -- Unit tests.
 
+function test_to_eol()
+  local code = '#foo\\\nbar\\\nbaz'
+  assert(lpeg.match(lexer.to_eol('#'), code) == 6)
+  assert(lpeg.match(lexer.to_eol('#', true), code) == #code + 1)
+end
+
+function test_range()
+  assert(lpeg.match(lexer.range('"'), '"foo\\"bar\n"baz') == 12)
+  assert(lpeg.match(lexer.range('"', true), '"foo\\"bar\n"baz') == 10)
+  assert(lpeg.match(lexer.range('"', false, false), '"foo\\"bar\n"baz') == 7)
+
+  assert(lpeg.match(lexer.range('(', ')'), '(foo\\)bar)baz') == 7)
+
+  assert(lpeg.match(lexer.range('/*', '*/'), '/*/*foo*/bar*/baz') == 10)
+  assert(lpeg.match(lexer.range('/*', '*/', false, false, true),
+    '/*/*foo*/bar*/baz') == 15)
+end
+
+function test_starts_line()
+  assert(lpeg.match(lexer.starts_line('#'), '#foo') == 2)
+  assert(lpeg.match(lexer.starts_line('#'), '\n#foo', 2) == 3)
+  assert(not lpeg.match(lexer.starts_line('#'), ' #foo', 2))
+end
+
+function test_last_char_includes()
+  assert(lpeg.match(lexer.last_char_includes('=,'), '/foo/'))
+  assert(lpeg.match(lexer.last_char_includes('=,'), 'foo=/bar/', 5) == 5)
+  assert(lpeg.match(lexer.last_char_includes('=,'), 'foo, /bar/', 6) == 6)
+  assert(not lpeg.match(lexer.last_char_includes('=,'), 'foo/bar', 4))
+end
+
+function test_word_match()
+  assert(lpeg.match(lexer.word_match[[foo bar baz]], 'foo') == 4)
+  assert(not lpeg.match(lexer.word_match[[foo bar baz]], 'foo_bar'))
+  assert(lpeg.match(lexer.word_match([[foo! bar? baz.]], true), 'FOO!') == 5)
+end
+
 -- Tests a basic lexer with a few simple rules and no custom styles.
 function test_basics()
   local lex = lexer.new('test')
   assert_default_styles(lex)
   lex:add_rule('whitespace', token(lexer.WHITESPACE, lexer.space^1))
   lex:add_rule('keyword', token(lexer.KEYWORD, word_match[[foo bar baz]]))
-  lex:add_rule('string', token(lexer.STRING, lexer.delimited_range('"')))
+  lex:add_rule('string', token(lexer.STRING, lexer.range('"')))
   lex:add_rule('number', token(lexer.NUMBER, lexer.integer))
   local code = [[foo bar baz "foo bar baz" 123]]
   local tokens = {
@@ -544,8 +581,8 @@ function test_fold_by_indentation()
     else:
       baz
   ]]
-  lexer.fold_level = {[0] = lexer.FOLD_BASE} -- Scintilla normally creates this
-  lexer.indent_amount = {[0] = 0} -- Scintilla normally creates this
+  lexer.fold_level = {lexer.FOLD_BASE} -- Scintilla normally creates this
+  lexer.indent_amount = {0} -- Scintilla normally creates this
   local folds = {1, 3}
   assert_fold_points(lex, code, folds)
 end
@@ -573,8 +610,8 @@ function test_legacy()
     'indentguide', 'calltip', 'folddisplaytext'
   }
   local token_styles = {}
-  for i = 1, #default do token_styles[default[i]] = i - 1 end
-  for i = 1, #predefined do token_styles[predefined[i]] = i + 31 end
+  for i = 1, #default do token_styles[default[i]] = i end
+  for i = 1, #predefined do token_styles[predefined[i]] = i + 32 end
   lex._TOKENSTYLES, lex._numstyles = token_styles, #default
   lex._EXTRASTYLES = {}
   assert_default_styles(lex)
@@ -930,6 +967,10 @@ function test_php()
     {'element', '>'}
   }
   local initial_style = php._TOKENSTYLES['html_whitespace']
+  assert_lex(php, code, tokens, initial_style)
+  initial_style = php._TOKENSTYLES['default'] -- also test non-ws init style
+  assert_lex(php, code, tokens, initial_style)
+  initial_style = php._TOKENSTYLES['default'] -- also test non-ws init style
   assert_lex(php, code, tokens, initial_style)
   -- Starting in PHP.
   code = [[echo "hi";]]

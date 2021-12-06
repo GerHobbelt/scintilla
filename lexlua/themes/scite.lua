@@ -1,4 +1,4 @@
--- Copyright 2006-2019 Mitchell mitchell.att.foicica.com. See License.txt.
+-- Copyright 2006-2020 Mitchell mitchell.att.foicica.com. See License.txt.
 -- SciTE theme for Lua lexers.
 
 local property = require('lexer').property
@@ -15,11 +15,11 @@ property['color.grey'] = '#808080'
 property['color.white'] = '#FFFFFF'
 
 -- Default style.
-property['font'], property['fontsize'] = 'Monospace', 11
+property['font'], property['fontsize'] = 'Monospace', '11'
 if WIN32 then
   property['font'] = 'Courier New'
 elseif OSX then
-  property['font'], property['fontsize'] = 'Monaco', 12
+  property['font'], property['fontsize'] = 'Monaco', '12'
 end
 
 -- Predefined styles.

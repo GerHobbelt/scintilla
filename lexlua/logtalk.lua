@@ -1,4 +1,4 @@
--- Copyright © 2017-2019 Michael T. Richter <ttmrichter@gmail.com>. See License.txt.
+-- Copyright © 2017-2020 Michael T. Richter <ttmrichter@gmail.com>. See License.txt.
 -- Logtalk LPeg lexer.
 
 local lexer = require('lexer')
@@ -65,6 +65,6 @@ local operators = [[
   as
 ]]
 lex:modify_rule('operator', token(lexer.OPERATOR, word_match(operators)) +
-                            lex:get_rule('operator'))
+  lex:get_rule('operator'))
 
 return lex

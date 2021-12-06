@@ -46,6 +46,7 @@ class ScintillaGTK : public ScintillaBase {
 	CLIPFORMAT cfColumnSelect;
 #endif
 
+	bool preeditInitialized;
 	Window wPreedit;
 	Window wPreeditDraw;
 	GtkIMContext *im_context;
@@ -78,7 +79,7 @@ public:
 	ScintillaGTK &operator=(const ScintillaGTK &) = delete;
 	ScintillaGTK &operator=(ScintillaGTK &&) = delete;
 	virtual ~ScintillaGTK();
-	static ScintillaGTK *FromWidget(GtkWidget *widget);
+	static ScintillaGTK *FromWidget(GtkWidget *widget) noexcept;
 	static void ClassInit(OBJECT_CLASS *object_class, GtkWidgetClass *widget_class, GtkContainerClass *container_class);
 private:
 	void Init();
