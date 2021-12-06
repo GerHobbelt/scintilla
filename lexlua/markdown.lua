@@ -38,21 +38,27 @@ lex:add_rule('list', token('list', lexer.starts_line(S(' \t')^0 * (S('*+-') +
                                    S(' \t')))
 lex:add_style('list', lexer.STYLE_CONSTANT)
 
-lex:add_rule('blockcode',
+lex:add_rule('block_code',
              token('code', lexer.starts_line(P(' ')^4 + P('\t')) * -P('<') *
-                           lexer.nonnewline^0 * lexer.newline^-1))
+                           lexer.nonnewline^0 * lexer.newline^-1) +
+             token('code', lexer.starts_line(P('```')) * (lexer.any - '```')^0 *
+                           P('```')^-1))
+lex:add_rule('inline_code',
+             token('code', P('``') * (lexer.any - '``')^0 * P('``')^-1 +
+                           lexer.delimited_range('`', false, true)))
 lex:add_style('code', lexer.STYLE_EMBEDDED..',eolfilled')
 
 lex:add_rule('hr',
              token('hr',
                    lpeg.Cmt(lexer.starts_line(S(' \t')^0 * lpeg.C(S('*-_'))),
                             function(input, index, c)
-                              local line = input:match('[^\n]*', index)
+                              local line = input:match('[^\r\n]*', index)
                               line = line:gsub('[ \t]', '')
                               if line:find('[^'..c..']') or #line < 2 then
                                 return nil
                               end
-                              return (input:find('\n', index) or #input) + 1
+                              return (select(2, input:find('\r?\n', index)) or
+                                      #input) + 1
                             end)))
 lex:add_style('hr', 'back:$(color.black),eolfilled')
 
@@ -78,7 +84,8 @@ lex:add_rule('link',
                             (S(' \t')^1 *
                              lexer.delimited_range('"', false, true))^-1 * ')' +
                             S(' \t')^0 * lexer.delimited_range('[]')) +
-                           P('http://') * (lexer.any - lexer.space)^1))
+                           'http' * P('s')^-1 * '://' *
+                           (lexer.any - lexer.space)^1))
 lex:add_style('link', 'underlined')
 
 lex:add_rule('strong', token('strong', P('**') * (lexer.any - '**')^0 *
@@ -86,11 +93,9 @@ lex:add_rule('strong', token('strong', P('**') * (lexer.any - '**')^0 *
                                        P('__') * (lexer.any - '__')^0 *
                                        P('__')^-1))
 lex:add_style('strong', 'bold')
-lex:add_rule('em', token('em', lexer.delimited_range('*', true) +
-                               lexer.delimited_range('_', true)))
+lex:add_rule('em', token('em', lexer.delimited_range('*', true, true) +
+                               lexer.delimited_range('_', true, true)))
 lex:add_style('em', 'italics')
-lex:add_rule('code', token('code', P('``') * (lexer.any - '``')^0 * P('``')^-1 +
-                                   lexer.delimited_range('`', true, true)))
 
 -- Embedded HTML.
 local html = lexer.load('html')

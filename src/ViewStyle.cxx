@@ -429,7 +429,7 @@ int ViewStyle::ExternalMarginWidth() const {
 
 int ViewStyle::MarginFromLocation(Point pt) const {
 	int margin = -1;
-	int x = textStart - fixedColumnWidth;
+	int x = marginInside ? 0 : -fixedColumnWidth;
 	for (size_t i = 0; i < ms.size(); i++) {
 		if ((pt.x >= x) && (pt.x < x + ms[i].width))
 			margin = static_cast<int>(i);
@@ -600,7 +600,7 @@ FontRealised *ViewStyle::Find(const FontSpecification &fs) {
 		// Should always reach here since map was just set for all styles
 		return it->second.get();
 	}
-	return 0;
+	return nullptr;
 }
 
 void ViewStyle::FindMaxAscentDescent() {
