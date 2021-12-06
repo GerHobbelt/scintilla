@@ -31,6 +31,7 @@
 
 #include "StringCopy.h"
 #include "XPM.h"
+#include "UniConversion.h"
 
 #import "ScintillaView.h"
 #import "ScintillaCocoa.h"
@@ -72,24 +73,9 @@ inline CGRect PRectangleToCGRect(PRectangle& rc)
   return CGRectMake(rc.left, rc.top, rc.Width(), rc.Height());
 }
 
-//--------------------------------------------------------------------------------------------------
-
-/**
- * Converts a Quartz-style rectangle to a PRectangle structure as used by Scintilla.
- */
-inline PRectangle CGRectToPRectangle(const CGRect& rect)
-{
-  PRectangle rc;
-  rc.left = (int)(rect.origin.x + 0.5);
-  rc.top = (int)(rect.origin.y + 0.5);
-  rc.right = (int)(rect.origin.x + rect.size.width + 0.5);
-  rc.bottom = (int)(rect.origin.y + rect.size.height + 0.5);
-  return rc;
-}
-
 //----------------- Font ---------------------------------------------------------------------------
 
-Font::Font(): fid(0)
+Font::Font() noexcept : fid(0)
 {
 }
 
@@ -102,9 +88,17 @@ Font::~Font()
 
 //--------------------------------------------------------------------------------------------------
 
-static int FontCharacterSet(Font &f) {
-	return static_cast<QuartzTextStyle *>(f.GetID())->getCharacterSet();
+static QuartzTextStyle *TextStyleFromFont(Font &f) {
+	return static_cast<QuartzTextStyle *>(f.GetID());
 }
+
+//--------------------------------------------------------------------------------------------------
+
+static int FontCharacterSet(Font &f) {
+	return TextStyleFromFont(f)->getCharacterSet();
+}
+
+//--------------------------------------------------------------------------------------------------
 
 /**
  * Creates a CTFontRef with the given properties.
@@ -140,7 +134,7 @@ SurfaceImpl::SurfaceImpl()
   y = 0;
   gc = NULL;
 
-  textLayout.reset(new QuartzTextLayout(nullptr));
+  textLayout.reset(new QuartzTextLayout());
   codePage = 0;
   verticalDeviceResolution = 0;
 
@@ -155,14 +149,13 @@ SurfaceImpl::SurfaceImpl()
 
 SurfaceImpl::~SurfaceImpl()
 {
-  Release();
+  Clear();
 }
 
 //--------------------------------------------------------------------------------------------------
 
-void SurfaceImpl::Release()
+void SurfaceImpl::Clear()
 {
-  textLayout->setContext(nullptr);
   if (bitmapData)
   {
     bitmapData.reset();
@@ -176,6 +169,12 @@ void SurfaceImpl::Release()
   bitmapHeight = 0;
   x = 0;
   y = 0;
+}
+
+//--------------------------------------------------------------------------------------------------
+
+void SurfaceImpl::Release() {
+	Clear();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -206,7 +205,6 @@ void SurfaceImpl::Init(SurfaceID sid, WindowID)
   Release();
   gc = static_cast<CGContextRef>(sid);
   CGContextSetLineWidth(gc, 1.0);
-  textLayout->setContext(gc);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -244,7 +242,6 @@ void SurfaceImpl::InitPixMap(int width, int height, Surface* surface_, WindowID 
     // and we have no use for the bitmap without the context
     bitmapData.reset();
   }
-  textLayout->setContext (gc);
 
   // the context retains the color space, so we can release it
   CGColorSpaceRelease(colorSpace);
@@ -276,7 +273,7 @@ void SurfaceImpl::PenColour(ColourDesired fore)
 {
   if (gc)
   {
-    ColourDesired colour(fore.AsLong());
+    ColourDesired colour(fore.AsInteger());
 
     // Set the Stroke color to match
     CGContextSetRGBStrokeColor(gc, colour.GetRed() / 255.0, colour.GetGreen() / 255.0,
@@ -290,7 +287,7 @@ void SurfaceImpl::FillColour(const ColourDesired& back)
 {
   if (gc)
   {
-    ColourDesired colour(back.AsLong());
+    ColourDesired colour(back.AsInteger());
 
     // Set the Fill color to match
     CGContextSetRGBFillColor(gc, colour.GetRed() / 255.0, colour.GetGreen() / 255.0,
@@ -304,7 +301,7 @@ CGImageRef SurfaceImpl::GetImage()
 {
   // For now, assume that GetImage can only be called on PixMap surfaces.
   if (!bitmapData)
-    return nullptr;
+    return NULL;
 
   CGContextFlush(gc);
 
@@ -313,8 +310,8 @@ CGImageRef SurfaceImpl::GetImage()
   if( colorSpace == NULL )
     return NULL;
 
-  const int bitmapBytesPerRow = ((int) bitmapWidth * BYTES_PER_PIXEL);
-  const int bitmapByteCount = (bitmapBytesPerRow * (int) bitmapHeight);
+  const int bitmapBytesPerRow = bitmapWidth * BYTES_PER_PIXEL;
+  const int bitmapByteCount = bitmapBytesPerRow * bitmapHeight;
 
   // Make a copy of the bitmap data for the image creation and divorce it
   // From the SurfaceImpl lifetime
@@ -405,13 +402,13 @@ void SurfaceImpl::LineTo(int x_, int y_)
 
 //--------------------------------------------------------------------------------------------------
 
-void SurfaceImpl::Polygon(Scintilla::Point *pts, int npts, ColourDesired fore,
+void SurfaceImpl::Polygon(Scintilla::Point *pts, size_t npts, ColourDesired fore,
                           ColourDesired back)
 {
   // Allocate memory for the array of points.
   std::vector<CGPoint> points(npts);
 
-  for (int i = 0;i < npts;i++)
+  for (size_t i = 0;i < npts;i++)
   {
     // Quartz floating point issues: plot the MIDDLE of the pixels
     points[i].x = pts[i].x + 0.5;
@@ -693,6 +690,50 @@ void Scintilla::SurfaceImpl::AlphaRectangle(PRectangle rc, int cornerSize, Colou
   }
 }
 
+void Scintilla::SurfaceImpl::GradientRectangle(PRectangle rc, const std::vector<ColourStop> &stops, GradientOptions options) {
+	if (!gc) {
+		return;
+	}
+
+	CGPoint ptStart = CGPointMake(rc.left, rc.top);
+	CGPoint ptEnd = CGPointMake(rc.left, rc.bottom);
+	if (options == GradientOptions::leftToRight) {
+		ptEnd = CGPointMake(rc.right, rc.top);
+	}
+
+	std::vector<CGFloat> components;
+	std::vector<CGFloat> locations;
+	for (const ColourStop &stop : stops) {
+		locations.push_back(stop.position);
+		components.push_back(stop.colour.GetRedComponent());
+		components.push_back(stop.colour.GetGreenComponent());
+		components.push_back(stop.colour.GetBlueComponent());
+		components.push_back(stop.colour.GetAlphaComponent());
+	}
+
+	CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+	if (!colorSpace) {
+		return;
+	}
+
+	CGGradientRef gradiantRef = CGGradientCreateWithColorComponents(colorSpace,
+									components.data(),
+									locations.data(),
+									locations.size());
+	if (gradiantRef) {
+		CGContextSaveGState(gc);
+		CGRect rect = PRectangleToCGRect(rc);
+		CGContextClipToRect(gc, rect);
+		CGContextBeginPath(gc);
+		CGContextAddRect(gc, rect);
+		CGContextClosePath(gc);
+		CGContextDrawLinearGradient(gc, gradiantRef, ptStart, ptEnd, 0);
+		CGGradientRelease(gradiantRef);
+		CGContextRestoreGState(gc);
+	}
+	CGColorSpaceRelease(colorSpace);
+}
+
 static void ProviderReleaseData(void *, const void *data, size_t) {
 	const unsigned char *pixels = static_cast<const unsigned char *>(data);
 	delete []pixels;
@@ -704,8 +745,8 @@ static CGImageRef ImageCreateFromRGBA(int width, int height, const unsigned char
 	// Create an RGB color space.
 	CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
 	if (colorSpace) {
-		const int bitmapBytesPerRow = ((int) width * 4);
-		const int bitmapByteCount = (bitmapBytesPerRow * (int) height);
+		const int bitmapBytesPerRow = width * 4;
+		const int bitmapByteCount = bitmapBytesPerRow * height;
 
 		// Create a data provider.
 		CGDataProviderRef dataProvider = 0;
@@ -776,8 +817,8 @@ void SurfaceImpl::CopyImageRectangle(Surface &surfaceSource, PRectangle srcRect,
   CGRect dst = PRectangleToCGRect(dstRect);
 
   /* source from QuickDrawToQuartz2D.pdf on developer.apple.com */
-  float w = (float) CGImageGetWidth(image);
-  float h = (float) CGImageGetHeight(image);
+  const float w = static_cast<float>(CGImageGetWidth(image));
+  const float h = static_cast<float>(CGImageGetHeight(image));
   CGRect drawRect = CGRectMake (0, 0, w, h);
   if (!CGRectEqualToRect (src, dst))
   {
@@ -911,28 +952,16 @@ void SurfaceImpl::DrawTextTransparent(PRectangle rc, Font &font_, XYPOSITION yba
                                       ColourDesired fore)
 {
 	CFStringEncoding encoding = EncodingFromCharacterSet(unicodeMode, FontCharacterSet(font_));
-	ColourDesired colour(fore.AsLong());
+	ColourDesired colour(fore.AsInteger());
 	CGColorRef color = CGColorCreateGenericRGB(colour.GetRed()/255.0,colour.GetGreen()/255.0,colour.GetBlue()/255.0,1.0);
 
-	QuartzTextStyle* style = static_cast<QuartzTextStyle*>(font_.GetID());
+	QuartzTextStyle *style = TextStyleFromFont(font_);
 	style->setCTStyleColor(color);
 
 	CGColorRelease(color);
 
-	textLayout->setText (reinterpret_cast<const UInt8*>(s), len, encoding, *static_cast<QuartzTextStyle*>(font_.GetID()));
-	textLayout->draw(rc.left, ybase);
-}
-
-static size_t utf8LengthFromLead(unsigned char uch) {
-	if (uch >= (0x80 + 0x40 + 0x20 + 0x10)) {
-		return 4;
-	} else if (uch >= (0x80 + 0x40 + 0x20)) {
-		return 3;
-	} else if (uch >= (0x80)) {
-		return 2;
-	} else {
-		return 1;
-	}
+	textLayout->setText(s, len, encoding, *style);
+	textLayout->draw(gc, rc.left, ybase);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -940,7 +969,7 @@ static size_t utf8LengthFromLead(unsigned char uch) {
 void SurfaceImpl::MeasureWidths(Font &font_, const char *s, int len, XYPOSITION *positions)
 {
 	CFStringEncoding encoding = EncodingFromCharacterSet(unicodeMode, FontCharacterSet(font_));
-	textLayout->setText (reinterpret_cast<const UInt8*>(s), len, encoding, *static_cast<QuartzTextStyle*>(font_.GetID()));
+	textLayout->setText(s, len, encoding, *TextStyleFromFont(font_));
 
 	CTLineRef mLine = textLayout->getCTLine();
 	assert(mLine != NULL);
@@ -949,13 +978,13 @@ void SurfaceImpl::MeasureWidths(Font &font_, const char *s, int len, XYPOSITION 
 		// Map the widths given for UTF-16 characters back onto the UTF-8 input string
 		CFIndex fit = textLayout->getStringLength();
 		int ui=0;
-		const unsigned char *us = reinterpret_cast<const unsigned char *>(s);
 		int i=0;
 		while (ui<fit) {
-			size_t lenChar = utf8LengthFromLead(us[i]);
-			size_t codeUnits = (lenChar < 4) ? 1 : 2;
+			const unsigned char uch = s[i];
+			const unsigned int byteCount = UTF8BytesOfLead[uch];
+			const int codeUnits = UTF16LengthFromUTF8ByteCount(byteCount);
 			CGFloat xPosition = CTLineGetOffsetForStringIndex(mLine, ui+codeUnits, NULL);
-			for (unsigned int bytePos=0; (bytePos<lenChar) && (i<len); bytePos++) {
+			for (unsigned int bytePos=0; (bytePos<byteCount) && (i<len); bytePos++) {
 				positions[i++] = static_cast<XYPOSITION>(xPosition);
 			}
 			ui += codeUnits;
@@ -989,24 +1018,11 @@ XYPOSITION SurfaceImpl::WidthText(Font &font_, const char *s, int len) {
   if (font_.GetID())
   {
     CFStringEncoding encoding = EncodingFromCharacterSet(unicodeMode, FontCharacterSet(font_));
-    textLayout->setText (reinterpret_cast<const UInt8*>(s), len, encoding, *static_cast<QuartzTextStyle*>(font_.GetID()));
+		textLayout->setText(s, len, encoding, *TextStyleFromFont(font_));
 
 	return static_cast<XYPOSITION>(textLayout->MeasureStringWidth());
   }
   return 1;
-}
-
-XYPOSITION SurfaceImpl::WidthChar(Font &font_, char ch) {
-  char str[2] = { ch, '\0' };
-  if (font_.GetID())
-  {
-    CFStringEncoding encoding = EncodingFromCharacterSet(unicodeMode, FontCharacterSet(font_));
-    textLayout->setText (reinterpret_cast<const UInt8*>(str), 1, encoding, *static_cast<QuartzTextStyle*>(font_.GetID()));
-
-    return textLayout->MeasureStringWidth();
-  }
-  else
-    return 1;
 }
 
 // This string contains a good range of characters to test for size.
@@ -1017,7 +1033,7 @@ XYPOSITION SurfaceImpl::Ascent(Font &font_) {
   if (!font_.GetID())
     return 1;
 
-	float ascent = static_cast<QuartzTextStyle*>( font_.GetID() )->getAscent();
+	float ascent = TextStyleFromFont(font_)->getAscent();
 	return ascent + 0.5f;
 
 }
@@ -1026,7 +1042,7 @@ XYPOSITION SurfaceImpl::Descent(Font &font_) {
   if (!font_.GetID())
     return 1;
 
-	float descent = static_cast<QuartzTextStyle*>( font_.GetID() )->getDescent();
+	float descent = TextStyleFromFont(font_)->getDescent();
 	return descent + 0.5f;
 
 }
@@ -1048,7 +1064,7 @@ XYPOSITION SurfaceImpl::AverageCharWidth(Font &font_) {
   const int sizeStringLength = ELEMENTS( sizeString );
   XYPOSITION width = WidthText( font_, sizeString, sizeStringLength  );
 
-  return (int) ((width / (float) sizeStringLength) + 0.5);
+  return round(width / sizeStringLength);
 }
 
 void SurfaceImpl::SetClip(PRectangle rc) {
@@ -1094,7 +1110,7 @@ static CGFloat ScreenMax()
 
 //--------------------------------------------------------------------------------------------------
 
-PRectangle Window::GetPosition()
+PRectangle Window::GetPosition() const
 {
   if (wid)
   {
@@ -1158,9 +1174,9 @@ void Window::SetPosition(PRectangle rc)
 
 //--------------------------------------------------------------------------------------------------
 
-void Window::SetPositionRelative(PRectangle rc, Window window)
+void Window::SetPositionRelative(PRectangle rc, const Window *window)
 {
-  PRectangle rcOther = window.GetPosition();
+  PRectangle rcOther = window->GetPosition();
   rc.left += rcOther.left;
   rc.right += rcOther.left;
   rc.top += rcOther.top;
@@ -1170,7 +1186,7 @@ void Window::SetPositionRelative(PRectangle rc, Window window)
 
 //--------------------------------------------------------------------------------------------------
 
-PRectangle Window::GetClientPosition()
+PRectangle Window::GetClientPosition() const
 {
   // This means, in MacOS X terms, get the "frame bounds". Call GetPosition, just like on Win32.
   return GetPosition();
@@ -1630,7 +1646,7 @@ void ListBoxImpl::SetFont(Font& font_)
 {
   // NSCell setFont takes an NSFont* rather than a CTFontRef but they
   // are the same thing toll-free bridged.
-  QuartzTextStyle* style = static_cast<QuartzTextStyle*>(font_.GetID());
+	QuartzTextStyle *style = TextStyleFromFont(font_);
   font.Release();
   font.SetID(new QuartzTextStyle(*style));
   NSFont *pfont = (NSFont *)style->getFontRef();
@@ -1748,8 +1764,8 @@ void ListBoxImpl::SetList(const char* list, char separator, char typesep)
   Clear();
   size_t count = strlen(list) + 1;
   std::vector<char> words(list, list+count);
-  char* startword = words.data();
-  char* numword = NULL;
+  char *startword = words.data();
+  char *numword = nullptr;
   int i = 0;
   for (; words[i]; i++)
   {
@@ -1760,7 +1776,7 @@ void ListBoxImpl::SetList(const char* list, char separator, char typesep)
         *numword = '\0';
       Append(startword, numword?atoi(numword + 1):-1);
       startword = words.data() + i + 1;
-      numword = NULL;
+      numword = nullptr;
     }
     else if (words[i] == typesep)
     {
@@ -1880,7 +1896,7 @@ void ListBoxImpl::SelectionChange() {
 
 // ListBox is implemented by the ListBoxImpl class.
 
-ListBox::ListBox()
+ListBox::ListBox() noexcept
 {
 }
 
@@ -1938,7 +1954,7 @@ void Window::Destroy()
 
 //----------------- Menu ---------------------------------------------------------------------------
 
-Menu::Menu()
+Menu::Menu() noexcept
   : mid(0)
 {
 }
@@ -1966,34 +1982,6 @@ void Menu::Show(Point, Window &)
 {
   // Cocoa menus are handled a bit differently. We only create the menu. The framework
   // takes care to show it properly.
-}
-
-//----------------- ElapsedTime --------------------------------------------------------------------
-
-// ElapsedTime is used for precise performance measurements during development
-// and not for anything a user sees.
-
-ElapsedTime::ElapsedTime() {
-  struct timeval curTime;
-  gettimeofday( &curTime, NULL );
-
-  bigBit = curTime.tv_sec;
-  littleBit = curTime.tv_usec;
-}
-
-double ElapsedTime::Duration(bool reset) {
-  struct timeval curTime;
-  gettimeofday( &curTime, NULL );
-  long endBigBit = curTime.tv_sec;
-  long endLittleBit = curTime.tv_usec;
-  double result = 1000000.0 * (endBigBit - bigBit);
-  result += endLittleBit - littleBit;
-  result /= 1000000.0;
-  if (reset) {
-    bigBit = endBigBit;
-    littleBit = endLittleBit;
-  }
-  return result;
 }
 
 //----------------- Platform -----------------------------------------------------------------------
@@ -2111,12 +2099,12 @@ void Platform::Assert(const char *c, const char *file, int line)
  * Implements the platform specific part of library loading.
  *
  * @param modulePath The path to the module to load.
- * @return A library instance or NULL if the module could not be found or another problem occurred.
+ * @return A library instance or nullptr if the module could not be found or another problem occurred.
  */
 DynamicLibrary* DynamicLibrary::Load(const char* /* modulePath */)
 {
   // Not implemented.
-  return NULL;
+  return nullptr;
 }
 
 //--------------------------------------------------------------------------------------------------

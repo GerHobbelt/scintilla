@@ -30,6 +30,40 @@ In order to back out of a graft:
 This can only be done ONCE, and affects the most recent graft, so make sure you
 test any questionable grafts first before attempting another one.
 
+Testing Backports
+=================
+
+Backporting a change is one thing, but ensuring the backport was successful is
+another. Currently, the measure of "success" is whether Scintilla compiles on
+all platforms after a backported change. This process can be automated using hg
+hooks and the "check.mak" makefile. By adding the following to .hg/hgrc:
+
+  [hooks]
+  pretxncommit.adddeps = test -z "`hg status | grep '^A' | grep '\.\(h\|cxx\)$'`" || make -f check.mak deps
+  pretxncommit.compile = make -f check.mak
+
+whenever a backported change is about to be committed, hg runs "check.mak",
+which attempts to compile Scintilla on all platforms. If successful, the commit
+is made. Otherwise, the commit fails and changes must be made before attempting
+to commit again.
+
+The file "check.mak" is designed to run on a Linux machine that has
+cross-compilers for Win32 and Mac OSX. It does not necessarily produce any
+binary builds of Scintilla that can be used -- it just ensures Scintilla can be
+built without compile errors. How to obtain a set of cross-compilers is beyond
+the scope of this document. At the time of writing, GCC 5.4 is used exclusively.
+
+Not only does "check.mak" perform platform compile checks, but it also has rules
+for manually running Scintilla's unit tests (which take too long to run
+automatically as a pre-commit hook), creating a LongTerm3 release archive set,
+and uploading documentation to the LongTerm3 website on SourceForge:
+
+  make test
+  make zip
+  make upload
+
+The last rule requires user credentials.
+
 Backport Status
 ===============
 
@@ -160,3 +194,107 @@ branch), or have information worth noting.
 
 6632:8399b7723701 Change standard flag on MacOS as Xcode clang doesn't yet like c++17.
   Not backported, since only C++11 is supported.
+
+6643:ebbb4e5aaf93 Update unit test Visual C++ builds to Visual C++ 2017 with /std:c++latest.
+  Not backported, since only C++11 is supported.
+
+6661:d03cd726962c New Xcode 9.3 so ran the updater which turned on some warnings and it fiddled with the projects and schemes.
+6662:3c001296c0a4 Reverted #6488 as Xcode clang 9.1 now likes --std=c++17.
+6664:0f1db0d9a0a6 Standardize on --std=c++17, avoiding GNU extensions and enabling clang 6.0.
+6666:9561714c303b Updated due to allowing C++17 code now.
+  Not backported, since only C++11 is supported.
+
+6676:d48bdae67b33 Updates for 4.0.4.
+6678:95fdb4c19b33 Added tag rel-4-0-4 for changeset d48bdae67b33
+  Not backported, since this is LongTerm3.
+
+6680:0161abb24da4 Bug [#2008]. Avoid warning unsigned >= 0.
+  Not backported, since it is unknown whether or not this feature will have any
+  C++14 or C++17 features in it.
+
+6689:41dbff5a4813 Make method const as it is just a reader.
+  Not backported, since return value depends on interface, which is different
+  from single interface in 4.x.
+
+6746:61e16d5c73cf Change log for SciTE for macOS.
+6749:85d99f7c5c6d SciTE change log.
+6757:56a46ce2e0b4 SciTE change log.
+6779:d5508bacbfd4 SciTE change log.
+  Not backported, as these apply only to SciTE.
+
+6786:68c8592fe333 Specify type of std::clamp to avoid casting arguments.
+  Not backported, since std::clamp is C++17 and Sci::clamp is not typed.
+
+6922:d97cb73c8da7 SciTE change log.
+  Not backported, as this applies only to SciTE.
+
+6924:b9ab83221b03 Updates for 4.0.5.
+6931:87dc832e3c94 Added tag rel-4-0-5 for changeset b9ab83221b03
+6932:cc470382029e Add stub for next release.
+  Not backported, since this is LongTerm3.
+
+6936:c98e38d29c46 Include <string_view> in tests in case needed.
+6937:5200f56c1494 Include <string_view> to allow future use in Platform interface and Unicode.
+6941:8a34096cd01e Modernize Platform.h (4) - update Surface to use string_view for text arguments.
+  Not backported, since only C++11 is supported.
+
+6942:adbc779db70a Modernize Platform.h (5) - remove ElapsedTime.
+  Not backported, since it was already removed in changeset 6876:a057d12cc6b9.
+
+6943:39f2ec3334c1 Use string_view for UniConversion functions.
+  Not backported, since only C++11 is supported.
+
+6946:959308676456 Fix warning.
+  Not backported, since it applies to a previous changeset not backported.
+
+6947:fb52ef66ed47 Remove dependency on StringCopy and simplify constructor.
+  Not backported, since only C++11 is supported.
+
+6949:7747dc29d8a0 Fix warnings in debug assertions.
+  Not backported, since it applies to a previous changeset not backported.
+
+6950:682b634df52b Encapsulate WideCharToMultiByte and MultiByteToWideChar to simplify calling sites and standardize use of options.
+  Not backported, since only C++11 is supported.
+
+6951:b2a17a08a1f8 Replace ELEMENTS with std::size and drop inclusion of StringCopy.h.
+  Backported only the latter bit since C++11 does not have std::size.
+
+6961:d2563c53ab4c SciTE change log.
+  Not backported, as this applies only to SciTE.
+
+6962:514fde42ccbf Draw invalid bytes in DBCS when detected as blobs in a similar way to UTF-8.
+  Backported, but replaced std::string_view usage with const char* and size_t
+  components.
+
+6964:d7ec2cdbcd16 If decoding DBCS text fails, use the MacRoman encoding to ensure something is visible.
+  Not backported, as it makes use of a previous changeset not backported and is
+  not easy for me to support if I patched it.
+
+6970:b78f7643ae73 Add definitions for bidirectional support to Platform.h and provide empty implementations for each platform.
+6971:e51e7a972b89 Implement bidirectional mode bidiL2R for DirectDraw on Win32.
+6972:f30d0a228046 Update for bidirectional support.
+6973:7570322b0219 Added credits.
+7006:a6d3cefd4f79 Add TabPositionAfter method to IScreenLine as this calculation is needed on each platform and it allows extension to custom tab stops.
+  Not backported, since previous bidirectional support was not backported.
+  
+7009:e1100c6feaaf Add function to find a UTF-16 position in a UTF-8 string.
+  Not backported, since it is only used in bidirectional support at the moment.
+  
+7011:23a98ab36601 Define IScreenLineLayout as the main interface for implementing bidirectional features by platform code.
+7012:5f4011e010f9 Implement IScreenLineLayout for Cocoa Core Text as ScreenLineLayout.
+7013:0d86879c5ca5 Make virtual space selections visible in bidirectional mode.
+7014:39d3e00c381a UpdateBidiData is called by EditView but doesn't use any EditView fields so make it static.
+7015:6a7459cd08f9 Updated to mention bidirectional works on Cocoa.
+  Not backported, since previous bidirectional support was not backported.
+  
+7026:4377a8d710e1 Update Cocoa enumerations to current names instead of deprecated names.
+  Not backported, since many of these enumerations are not available for older SDKs.
+  
+7027:b71248119e8b Remove compile-time ENABLE_BIDIRECTIONAL option as bidirectional feature is now controlled completely at run-time.
+  Not backported, since previous bidirectional support was not backported.
+
+7033:5da90aad11da Updates for 4.1.0.
+  Not backported, since this is LongTerm3.
+  
+7034:0dc20d87a4f9 Note that Cocoa also supports bidirectional text.
+  Not backported, since previous bidirectional support was not backported.

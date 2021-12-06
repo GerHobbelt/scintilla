@@ -13,9 +13,11 @@ LEXCOMPONENT = $(DIR_BIN)/SciLexer.dll
 LIBSCI = $(DIR_BIN)/libscintilla.a
 
 ifdef CLANG
-# Common location for 32-bit clang on Windows
-CXX = "C:\Program Files (x86)\LLVM\bin\clang++"
-CXXSTD = c++14
+CXX = clang++
+# Clang doesn't like omitting braces in array initialization but they just add noise,
+# __uuidof is a Microsoft extension but makes COM code neater,
+# public visibility avoids warnings like 'locally defined symbol __std_terminate imported'
+CLANG_OPTS = -Wno-missing-braces -Wno-language-extension-token -Xclang -flto-visibility-public-std
 else
 # MinGW GCC
 LDMINGW = -Wl,--enable-runtime-pseudo-reloc-v2 -Wl,--add-stdcall-alias
@@ -41,13 +43,7 @@ LIBS=-lgdi32 -luser32 -limm32 -lole32 -luuid -loleaut32 -lmsimg32 $(LIBSMINGW)
 # Add -MMD to get dependencies
 INCLUDEDIRS=-I ../include -I ../src -I../lexlib
 
-# Check if Direct2D headers are available by trying to compile a file that includes them.
-# Most distributions of MinGW32 do not include Direct2D support but MinGW64 does.
-ifneq "$(shell $(CXX) -c CheckD2D.cxx 2>&1)" ""
-D2DFLAGS=-DDISABLE_D2D
-endif
-
-CXXBASEFLAGS=--std=$(CXXSTD) -Wall -pedantic $(INCLUDEDIRS) $(D2DFLAGS) -D_CRT_SECURE_NO_DEPRECATE=1
+CXXBASEFLAGS=--std=$(CXXSTD) -Wall -pedantic $(INCLUDEDIRS) -D_CRT_SECURE_NO_DEPRECATE=1 $(CLANG_OPTS)
 
 ifdef NO_CXX11_REGEX
 REFLAGS=-DNO_CXX11_REGEX
@@ -82,7 +78,7 @@ endif
 	$(CC) $(CFLAGS) -c $<
 
 analyze:
-	$(CXX) --analyze $(D2DFLAGS) $(CXXFLAGS) *.cxx ../src/*.cxx ../lexlib/*.cxx ../lexers/*.cxx
+	$(CXX) --analyze $(CXXFLAGS) *.cxx ../src/*.cxx ../lexlib/*.cxx ../lexers/*.cxx
 
 deps:
 	$(CXX) -MM $(CXXFLAGS) *.cxx ../src/*.cxx ../lexlib/*.cxx ../lexers/*.cxx >deps.mak
@@ -124,7 +120,7 @@ BASEOBJS = \
 	XPM.o \
 	HanjaDic.o
 
-SOBJS = ScintillaWin.o ScintillaBase.o $(BASEOBJS)
+SOBJS = ScintillaDLL.o ScintillaWin.o ScintillaBase.o $(BASEOBJS)
 
 # Required by lexers
 LEXLIBOBJS=\
@@ -149,10 +145,10 @@ SCILEXOBJS=\
 $(COMPONENT): $(SOBJS) Scintilla.def
 	$(CXX) $(LDFLAGS) -o $@ $(STRIPFLAG) $(SOBJS) $(CXXFLAGS) $(LIBS)
 
-$(LEXCOMPONENT): ScintillaWinL.o $(SCILEXOBJS) Scintilla.def
-	$(CXX) $(LDFLAGS) -o $@ $(STRIPFLAG) ScintillaWinL.o $(SCILEXOBJS) $(CXXFLAGS) $(LIBS)
+$(LEXCOMPONENT): ScintillaDLL.o ScintillaWinL.o $(SCILEXOBJS) Scintilla.def
+	$(CXX) $(LDFLAGS) -o $@ $(STRIPFLAG) ScintillaDLL.o ScintillaWinL.o $(SCILEXOBJS) $(CXXFLAGS) $(LIBS)
 
-$(LIBSCI): ScintillaWinS.o $(SCILEXOBJS)
+$(LIBSCI): ScintillaWin.o $(SCILEXOBJS)
 	$(AR) rc $@ $^
 	$(RANLIB) $@
 
@@ -184,21 +180,8 @@ ScintillaWinL.o: ScintillaWin.cxx Platform.h \
  LexerModule.h Catalogue.h CaseConvert.h \
  CaseFolder.h
 
-ScintillaWinS.o: ScintillaWin.cxx Platform.h \
- ILexer.h Scintilla.h SplitVector.h \
- Partitioning.h RunStyles.h ContractionState.h \
- CellBuffer.h CallTip.h KeyMap.h Indicator.h \
- XPM.h LineMarker.h Style.h AutoComplete.h \
- ViewStyle.h CharClassify.h Decoration.h \
- Document.h Selection.h PositionCache.h \
- EditModel.h Editor.h EditView.h ScintillaBase.h UniConversion.h \
- CaseConvert.h CaseFolder.h
-
 ScintillaBaseL.o:
 	$(CXX) $(CXXFLAGS) -D SCI_LEXER -c $< -o $@
-
-ScintillaWinS.o:
-	$(CXX) $(CXXFLAGS) -D STATIC_BUILD -c $< -o $@
 
 ScintillaWinL.o:
 	$(CXX) $(CXXFLAGS) -D SCI_LEXER -c $< -o $@

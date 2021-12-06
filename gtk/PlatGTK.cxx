@@ -105,7 +105,7 @@ static GtkWidget *PWidget(WindowID wid) {
 	return static_cast<GtkWidget *>(wid);
 }
 
-Font::Font() : fid(0) {}
+Font::Font() noexcept : fid(0) {}
 
 Font::~Font() {}
 
@@ -153,13 +153,14 @@ public:
 	int DeviceHeightFont(int points) override;
 	void MoveTo(int x_, int y_) override;
 	void LineTo(int x_, int y_) override;
-	void Polygon(Point *pts, int npts, ColourDesired fore, ColourDesired back) override;
+	void Polygon(Point *pts, size_t npts, ColourDesired fore, ColourDesired back) override;
 	void RectangleDraw(PRectangle rc, ColourDesired fore, ColourDesired back) override;
 	void FillRectangle(PRectangle rc, ColourDesired back) override;
 	void FillRectangle(PRectangle rc, Surface &surfacePattern) override;
 	void RoundedRectangle(PRectangle rc, ColourDesired fore, ColourDesired back) override;
 	void AlphaRectangle(PRectangle rc, int cornerSize, ColourDesired fill, int alphaFill,
 		ColourDesired outline, int alphaOutline, int flags) override;
+	void GradientRectangle(PRectangle rc, const std::vector<ColourStop> &stops, GradientOptions options) override;
 	void DrawRGBAImage(PRectangle rc, int width, int height, const unsigned char *pixelsImage) override;
 	void Ellipse(PRectangle rc, ColourDesired fore, ColourDesired back) override;
 	void Copy(PRectangle rc, Point from, Surface &surfaceSource) override;
@@ -170,7 +171,6 @@ public:
 	void DrawTextTransparent(PRectangle rc, Font &font_, XYPOSITION ybase, const char *s, int len, ColourDesired fore) override;
 	void MeasureWidths(Font &font_, const char *s, int len, XYPOSITION *positions) override;
 	XYPOSITION WidthText(Font &font_, const char *s, int len) override;
-	XYPOSITION WidthChar(Font &font_, char ch) override;
 	XYPOSITION Ascent(Font &font_) override;
 	XYPOSITION Descent(Font &font_) override;
 	XYPOSITION InternalLeading(Font &font_) override;
@@ -361,7 +361,7 @@ void SurfaceImpl::InitPixMap(int width, int height, Surface *surface_, WindowID 
 
 void SurfaceImpl::PenColour(ColourDesired fore) {
 	if (context) {
-		ColourDesired cdFore(fore.AsLong());
+		ColourDesired cdFore(fore.AsInteger());
 		cairo_set_source_rgb(context,
 			cdFore.GetRed() / 255.0,
 			cdFore.GetGreen() / 255.0,
@@ -425,12 +425,12 @@ void SurfaceImpl::LineTo(int x_, int y_) {
 	y = y_;
 }
 
-void SurfaceImpl::Polygon(Point *pts, int npts, ColourDesired fore,
+void SurfaceImpl::Polygon(Point *pts, size_t npts, ColourDesired fore,
                           ColourDesired back) {
 	PLATFORM_ASSERT(context);
 	PenColour(back);
 	cairo_move_to(context, pts[0].x + 0.5, pts[0].y + 0.5);
-	for (int i = 1; i < npts; i++) {
+	for (size_t i = 1; i < npts; i++) {
 		cairo_line_to(context, pts[i].x + 0.5, pts[i].y + 0.5);
 	}
 	cairo_close_path(context);
@@ -519,7 +519,7 @@ static void PathRoundRectangle(cairo_t *context, double left, double top, double
 void SurfaceImpl::AlphaRectangle(PRectangle rc, int cornerSize, ColourDesired fill, int alphaFill,
 		ColourDesired outline, int alphaOutline, int /*flags*/) {
 	if (context && rc.Width() > 0) {
-		ColourDesired cdFill(fill.AsLong());
+		ColourDesired cdFill(fill.AsInteger());
 		cairo_set_source_rgba(context,
 			cdFill.GetRed() / 255.0,
 			cdFill.GetGreen() / 255.0,
@@ -531,7 +531,7 @@ void SurfaceImpl::AlphaRectangle(PRectangle rc, int cornerSize, ColourDesired fi
 			cairo_rectangle(context, rc.left + 1.0, rc.top + 1.0, rc.right - rc.left - 2.0, rc.bottom - rc.top - 2.0);
 		cairo_fill(context);
 
-		ColourDesired cdOutline(outline.AsLong());
+		ColourDesired cdOutline(outline.AsInteger());
 		cairo_set_source_rgba(context,
 			cdOutline.GetRed() / 255.0,
 			cdOutline.GetGreen() / 255.0,
@@ -542,6 +542,32 @@ void SurfaceImpl::AlphaRectangle(PRectangle rc, int cornerSize, ColourDesired fi
 		else
 			cairo_rectangle(context, rc.left + 0.5, rc.top + 0.5, rc.right - rc.left - 1, rc.bottom - rc.top - 1);
 		cairo_stroke(context);
+	}
+}
+
+void SurfaceImpl::GradientRectangle(PRectangle rc, const std::vector<ColourStop> &stops, GradientOptions options) {
+	if (context) {
+		cairo_pattern_t *pattern;
+		switch (options) {
+		case GradientOptions::leftToRight:
+			pattern = cairo_pattern_create_linear(rc.left, rc.top, rc.right, rc.top);
+			break;
+		case GradientOptions::topToBottom:
+		default:
+			pattern = cairo_pattern_create_linear(rc.left, rc.top, rc.left, rc.bottom);
+			break;
+		}
+		for (const ColourStop &stop : stops) {
+			cairo_pattern_add_color_stop_rgba(pattern, stop.position,
+				stop.colour.GetRedComponent(),
+				stop.colour.GetGreenComponent(),
+				stop.colour.GetBlueComponent(),
+				stop.colour.GetAlphaComponent());
+		}
+		cairo_rectangle(context, rc.left, rc.top, rc.Width(), rc.Height());
+		cairo_set_source(context, pattern);
+		cairo_fill(context);
+		cairo_pattern_destroy(pattern);
 	}
 }
 
@@ -781,7 +807,7 @@ void SurfaceImpl::MeasureWidths(Font &font_, const char *s, int len, XYPOSITION 
 									positions[i++] = iti.position - (places - place) * iti.distance / places;
 									positionsCalculated++;
 								}
-								clusterStart += UTF8CharLength(static_cast<unsigned char>(utfForm.c_str()[clusterStart]));
+								clusterStart += UTF8BytesOfLead[static_cast<unsigned char>(utfForm.c_str()[clusterStart])];
 								place++;
 							}
 						}
@@ -865,17 +891,6 @@ XYPOSITION SurfaceImpl::WidthText(Font &font_, const char *s, int len) {
 	}
 }
 
-XYPOSITION SurfaceImpl::WidthChar(Font &font_, char ch) {
-	if (font_.GetID()) {
-		if (PFont(font_)->pfd) {
-			return WidthText(font_, &ch, 1);
-		}
-		return 1;
-	} else {
-		return 1;
-	}
-}
-
 // Ascent and descent determined by Pango font metrics.
 
 XYPOSITION SurfaceImpl::Ascent(Font &font_) {
@@ -917,7 +932,7 @@ XYPOSITION SurfaceImpl::Height(Font &font_) {
 }
 
 XYPOSITION SurfaceImpl::AverageCharWidth(Font &font_) {
-	return WidthChar(font_, 'n');
+	return WidthText(font_, "n", 1);
 }
 
 void SurfaceImpl::SetClip(PRectangle rc) {
@@ -961,7 +976,7 @@ void Window::Destroy() {
 	}
 }
 
-PRectangle Window::GetPosition() {
+PRectangle Window::GetPosition() const {
 	// Before any size allocated pretend its 1000 wide so not scrolled
 	PRectangle rc(0, 0, 1000, 1000);
 	if (wid) {
@@ -1005,15 +1020,15 @@ GdkRectangle MonitorRectangleForWidget(GtkWidget *wid) {
 
 }
 
-void Window::SetPositionRelative(PRectangle rc, Window relativeTo) {
+void Window::SetPositionRelative(PRectangle rc, const Window *relativeTo) {
 	int ox = 0;
 	int oy = 0;
-	GdkWindow *wndRelativeTo = WindowFromWidget(PWidget(relativeTo.wid));
+	GdkWindow *wndRelativeTo = WindowFromWidget(PWidget(relativeTo->wid));
 	gdk_window_get_origin(wndRelativeTo, &ox, &oy);
 	ox += rc.left;
 	oy += rc.top;
 
-	GdkRectangle rcMonitor = MonitorRectangleForWidget(PWidget(relativeTo.wid));
+	GdkRectangle rcMonitor = MonitorRectangleForWidget(PWidget(relativeTo->wid));
 
 	/* do some corrections to fit into screen */
 	int sizex = rc.right - rc.left;
@@ -1032,7 +1047,7 @@ void Window::SetPositionRelative(PRectangle rc, Window relativeTo) {
 	gtk_window_resize(GTK_WINDOW(wid), sizex, sizey);
 }
 
-PRectangle Window::GetClientPosition() {
+PRectangle Window::GetClientPosition() const {
 	// On GTK+, the client position is the window position
 	return GetPosition();
 }
@@ -1143,7 +1158,7 @@ static void list_image_free(gpointer, gpointer value, gpointer) {
 	g_free(list_image);
 }
 
-ListBox::ListBox() {
+ListBox::ListBox() noexcept {
 }
 
 ListBox::~ListBox() {
@@ -1866,7 +1881,7 @@ void ListBoxX::SetList(const char *listText, char separator, char typesep) {
 	}
 }
 
-Menu::Menu() : mid(0) {}
+Menu::Menu() noexcept : mid(0) {}
 
 void Menu::CreatePopUp() {
 	Destroy();
@@ -1914,13 +1929,6 @@ void Menu::Show(Point pt, Window &w) {
 #endif
 }
 
-ElapsedTime::ElapsedTime() {
-	GTimeVal curTime;
-	g_get_current_time(&curTime);
-	bigBit = curTime.tv_sec;
-	littleBit = curTime.tv_usec;
-}
-
 class DynamicLibraryImpl : public DynamicLibrary {
 protected:
 	GModule* m;
@@ -1955,21 +1963,6 @@ public:
 
 DynamicLibrary *DynamicLibrary::Load(const char *modulePath) {
 	return static_cast<DynamicLibrary *>( new DynamicLibraryImpl(modulePath) );
-}
-
-double ElapsedTime::Duration(bool reset) {
-	GTimeVal curTime;
-	g_get_current_time(&curTime);
-	long endBigBit = curTime.tv_sec;
-	long endLittleBit = curTime.tv_usec;
-	double result = 1000000.0 * (endBigBit - bigBit);
-	result += endLittleBit - littleBit;
-	result /= 1000000.0;
-	if (reset) {
-		bigBit = endBigBit;
-		littleBit = endLittleBit;
-	}
-	return result;
 }
 
 ColourDesired Platform::Chrome() {

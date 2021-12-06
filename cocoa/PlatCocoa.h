@@ -65,6 +65,9 @@ private:
   static const int BITS_PER_COMPONENT = 8;
   static const int BITS_PER_PIXEL = BITS_PER_COMPONENT * 4;
   static const int BYTES_PER_PIXEL = BITS_PER_PIXEL / 8;
+
+	void Clear();
+
 public:
   SurfaceImpl();
   ~SurfaceImpl() override;
@@ -86,13 +89,14 @@ public:
   int DeviceHeightFont(int points) override;
   void MoveTo(int x_, int y_) override;
   void LineTo(int x_, int y_) override;
-  void Polygon(Scintilla::Point *pts, int npts, ColourDesired fore, ColourDesired back) override;
+  void Polygon(Scintilla::Point *pts, size_t npts, ColourDesired fore, ColourDesired back) override;
   void RectangleDraw(PRectangle rc, ColourDesired fore, ColourDesired back) override;
   void FillRectangle(PRectangle rc, ColourDesired back) override;
   void FillRectangle(PRectangle rc, Surface &surfacePattern) override;
   void RoundedRectangle(PRectangle rc, ColourDesired fore, ColourDesired back) override;
   void AlphaRectangle(PRectangle rc, int cornerSize, ColourDesired fill, int alphaFill,
                      ColourDesired outline, int alphaOutline, int flags) override;
+  void GradientRectangle(PRectangle rc, const std::vector<ColourStop> &stops, GradientOptions options) override;
   void DrawRGBAImage(PRectangle rc, int width, int height, const unsigned char *pixelsImage) override;
   void Ellipse(PRectangle rc, ColourDesired fore, ColourDesired back) override;
   void Copy(PRectangle rc, Scintilla::Point from, Surface &surfaceSource) override;
@@ -103,7 +107,6 @@ public:
   void DrawTextTransparent(PRectangle rc, Font &font_, XYPOSITION ybase, const char *s, int len, ColourDesired fore) override;
   void MeasureWidths(Font &font_, const char *s, int len, XYPOSITION *positions) override;
   XYPOSITION WidthText(Font &font_, const char *s, int len) override;
-  XYPOSITION WidthChar(Font &font_, char ch) override;
   XYPOSITION Ascent(Font &font_) override;
   XYPOSITION Descent(Font &font_) override;
   XYPOSITION InternalLeading(Font &font_) override;

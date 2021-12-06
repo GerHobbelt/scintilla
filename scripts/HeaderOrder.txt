@@ -44,6 +44,7 @@
 #include <iterator>
 #include <functional>
 #include <memory>
+#include <chrono>
 #include <regex>
 #include <iostream>
 #include <sstream>
@@ -114,6 +115,7 @@
 #include "Catalogue.h"
 
 #include "Position.h"
+#include "IntegerRectangle.h"
 #include "UniqueString.h"
 #include "SplitVector.h"
 #include "Partitioning.h"
@@ -136,7 +138,6 @@
 #include "RESearch.h"
 #include "CaseConvert.h"
 #include "UniConversion.h"
-#include "UnicodeFromUTF8.h"
 #include "DBCS.h"
 #include "Selection.h"
 #include "PositionCache.h"
@@ -145,6 +146,7 @@
 #include "MarginView.h"
 #include "EditView.h"
 #include "Editor.h"
+#include "ElapsedPeriod.h"
 
 #include "AutoComplete.h"
 #include "ScintillaBase.h"
@@ -156,6 +158,7 @@
 // win32
 #include "PlatWin.h"
 #include "HanjaDic.h"
+#include "ScintillaWin.h"
 
 // gtk
 #include "ScintillaGTK.h"

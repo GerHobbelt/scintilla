@@ -72,7 +72,7 @@ using namespace Scintilla;
  * done in `Font::Create()`.
  * @see Font::Create
  */
-Font::Font() : fid(0) {}
+Font::Font() noexcept : fid(0) {}
 /** Deletes the font. Currently empty. */
 Font::~Font() {}
 /**
@@ -279,7 +279,8 @@ public:
    * Line markers that Scintilla would normally draw as polygons are handled in
    * `DrawLineMarker()`.
    */
-  void Polygon(Point *pts, int npts, ColourDesired fore, ColourDesired back) {
+  void Polygon(Point *pts, size_t npts, ColourDesired fore,
+               ColourDesired back) {
     wattr_set(win, 0, term_color_pair(back, COLOR_WHITE), NULL); // invert
     if (pts[0].y < pts[npts - 1].y) // up arrow
       mvwaddstr(win, pts[0].y, pts[npts - 1].x + 1, "▲");
@@ -337,11 +338,14 @@ public:
                       int flags) {
     for (int x = rc.left, y = rc.top - 1; x < rc.right; x++) {
       attr_t attrs = mvwinch(win, y, x) & A_ATTRIBUTES;
-      short pair = PAIR_NUMBER(attrs), fore = COLOR_WHITE;
-      if (pair > 0) pair_content(pair, &fore, NULL);
+      short pair = PAIR_NUMBER(attrs), fore, unused;
+      if (pair > 0) pair_content(pair, &fore, &unused);
       mvwchgat(win, y, x, 1, attrs, term_color_pair(fore, fill), NULL);
     }
   }
+  /** Drawing gradients is not implemented. */
+  void GradientRectangle(PRectangle rc, const std::vector<ColourStop> &stops,
+                         GradientOptions options) {}
   /** Drawing images is not implemented. */
   void DrawRGBAImage(PRectangle rc, int width, int height,
                      const unsigned char *pixelsImage) {}
@@ -420,8 +424,8 @@ public:
                            const char *s, int len, ColourDesired fore) {
     if ((int)rc.top >= getmaxy(win) - 1) return;
     attr_t attrs = mvwinch(win, (int)rc.top, (int)rc.left);
-    short pair = PAIR_NUMBER(attrs), back = COLOR_BLACK;
-    if (pair > 0) pair_content(pair, NULL, &back);
+    short pair = PAIR_NUMBER(attrs), unused, back;
+    if (pair > 0) pair_content(pair, &unused, &back);
     DrawTextNoClip(rc, font_, ybase, s, len, fore, SCI_COLORS[back]);
   }
   /**
@@ -447,8 +451,6 @@ public:
       if (!UTF8IsTrailByte((unsigned char)s[i])) width += grapheme_width(s + i);
     return width;
   }
-  /** Returns 1 since curses characters always have a width of 1. */
-  XYPOSITION WidthChar(Font &font_, char ch) { return 1; }
   /** Returns 0 since curses characters have no ascent. */
   XYPOSITION Ascent(Font &font_) { return 0; }
   /** Returns 0 since curses characters have no descent. */
@@ -620,7 +622,7 @@ void Window::Destroy() {
  * bounds to ensure all of it is painted.
  * @return PRectangle with the window's boundaries.
  */
-PRectangle Window::GetPosition() {
+PRectangle Window::GetPosition() const {
   int maxx = wid ? getmaxx(_WINDOW(wid)) : 0;
   int maxy = wid ? getmaxy(_WINDOW(wid)) : 0;
   return PRectangle(0, 0, maxx, maxy);
@@ -631,10 +633,10 @@ PRectangle Window::GetPosition() {
  * @param rc The position relative to the parent window.
  * @param relativeTo The parent window.
  */
-void Window::SetPositionRelative(PRectangle rc, Window relativeTo) {
+void Window::SetPositionRelative(PRectangle rc, const Window *relativeTo) {
   int begx = 0, begy = 0, x = 0, y = 0;
   // Determine the relative position.
-  getbegyx(_WINDOW(relativeTo.GetID()), begy, begx);
+  getbegyx(_WINDOW(relativeTo->GetID()), begy, begx);
   x = begx + rc.left;
   if (x < begx) x = begx;
   y = begy + rc.top;
@@ -642,8 +644,8 @@ void Window::SetPositionRelative(PRectangle rc, Window relativeTo) {
   // Correct to fit the parent if necessary.
   int sizex = rc.right - rc.left;
   int sizey = rc.bottom - rc.top;
-  int screen_width = getmaxx(_WINDOW(relativeTo.GetID()));
-  int screen_height = getmaxy(_WINDOW(relativeTo.GetID()));
+  int screen_width = getmaxx(_WINDOW(relativeTo->GetID()));
+  int screen_height = getmaxy(_WINDOW(relativeTo->GetID()));
   if (sizex > screen_width)
     x = begx; // align left
   else if (x + sizex > begx + screen_width)
@@ -657,7 +659,7 @@ void Window::SetPositionRelative(PRectangle rc, Window relativeTo) {
   mvwin(_WINDOW(wid), y, x);
 }
 /** Identical to `Window::GetPosition()`. */
-PRectangle Window::GetClientPosition() { return GetPosition(); }
+PRectangle Window::GetClientPosition() const { return GetPosition(); }
 void Window::Show(bool show) { /* TODO: */ }
 void Window::InvalidateAll() { /* notify repaint */ }
 void Window::InvalidateRectangle(PRectangle rc) { /* notify repaint*/ }
@@ -840,21 +842,17 @@ public:
 };
 
 /** Creates a new Scintilla ListBox. */
-ListBox::ListBox() {}
+ListBox::ListBox() noexcept {}
 /** Deletes the ListBox. */
 ListBox::~ListBox() {}
 /** Creates a new curses ListBox. */
 ListBox *ListBox::Allocate() { return new ListBoxImpl(); }
 
 // Menus are not implemented.
-Menu::Menu() : mid(0) {}
+Menu::Menu() noexcept : mid(0) {}
 void Menu::CreatePopUp() {}
 void Menu::Destroy() {}
 void Menu::Show(Point pt, Window &w) {}
-
-// ElapsedTime is not implemented.
-ElapsedTime::ElapsedTime() : bigBit(0), littleBit(0) {}
-double ElapsedTime::Duration(bool reset) { return 1; }
 
 /** Dynamic library loading is not implemented. */
 DynamicLibrary *DynamicLibrary::Load(const char *modulePath) {
@@ -1024,7 +1022,7 @@ public:
    * pages. The width is based on the width of the view and the view's scroll
    * width property.
    */
-  bool ModifyScrollBars(int nMax, int nPage) {
+  bool ModifyScrollBars(Sci::Line nMax, Sci::Line nPage) {
     if (!wMain.GetID()) return false;
     WINDOW *w = GetWINDOW();
     int maxy = getmaxy(w), maxx = getmaxx(w);

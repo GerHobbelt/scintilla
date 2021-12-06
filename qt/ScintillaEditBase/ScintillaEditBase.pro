@@ -19,7 +19,7 @@ unix {
     }
 }
 
-VERSION = 3.8.0
+VERSION = 3.10.0
 
 SOURCES += \
     PlatQt.cpp \
@@ -74,7 +74,6 @@ HEADERS  += \
     ../../src/XPM.h \
     ../../src/ViewStyle.h \
     ../../src/UniConversion.h \
-    ../../src/UnicodeFromUTF8.h \
     ../../src/Style.h \
     ../../src/SplitVector.h \
     ../../src/Selection.h \
