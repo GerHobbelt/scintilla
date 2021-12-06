@@ -1456,7 +1456,7 @@ void ScintillaCocoa::StartDrag()
   //           the full rectangle which may include non-selected text.
 
   NSBitmapImageRep* bitmap = NULL;
-  CGImageRef imagePixmap = pixmap.GetImage();
+  CGImageRef imagePixmap = pixmap.CreateImage();
   if (imagePixmap)
     bitmap = [[[NSBitmapImageRep alloc] initWithCGImage: imagePixmap] autorelease];
   CGImageRelease(imagePixmap);
@@ -2279,7 +2279,7 @@ bool ScintillaCocoa::KeyboardInput(NSEvent* event)
 /**
  * Used to insert already processed text provided by the Cocoa text input system.
  */
-ptrdiff_t ScintillaCocoa::InsertText(NSString *input) {
+ptrdiff_t ScintillaCocoa::InsertText(NSString *input, CharacterSource charSource) {
   CFStringEncoding encoding = EncodingFromCharacterSet(IsUnicodeMode(),
                                                        vs.styles[STYLE_DEFAULT].characterSet);
   std::string encoded = EncodedBytesString((CFStringRef)input, encoding);
@@ -2292,11 +2292,11 @@ ptrdiff_t ScintillaCocoa::InsertText(NSString *input) {
       while (sv.length()) {
         const unsigned char leadByte = sv[0];
         const unsigned int bytesInCharacter = UTF8BytesOfLead[leadByte];
-        AddCharUTF(sv.c_str(), bytesInCharacter, false);
+        InsertCharacter(sv.c_str(), bytesInCharacter, charSource);
         sv = sv.substr(bytesInCharacter, sv.length());
       }
     } else {
-      AddCharUTF(encoded.c_str(), static_cast<unsigned int>(encoded.length()), false);
+      InsertCharacter(encoded.c_str(), static_cast<unsigned int>(encoded.length()), charSource);
 		}
   }
   return encoded.length();
@@ -2387,7 +2387,7 @@ void ScintillaCocoa::CompositionStart()
 void ScintillaCocoa::CompositionCommit()
 {
   pdoc->TentativeCommit();
-  pdoc->DecorationSetCurrentIndicator(INDIC_IME);
+  pdoc->DecorationSetCurrentIndicator(INDICATOR_IME);
   pdoc->DecorationFillRange(0, 0, pdoc->Length());
 }
 

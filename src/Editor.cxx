@@ -1888,7 +1888,7 @@ void Editor::AddChar(char ch) {
 	char s[2];
 	s[0] = ch;
 	s[1] = '\0';
-	AddCharUTF(s, 1);
+	InsertCharacter(s, 1, CharacterSource::directInput);
 }
 
 void Editor::FilterSelections() {
@@ -1898,8 +1898,8 @@ void Editor::FilterSelections() {
 	}
 }
 
-// AddCharUTF inserts an array of bytes which may or may not be in UTF-8.
-void Editor::AddCharUTF(const char *s, unsigned int len, bool treatAsDBCS) {
+// InsertCharacter inserts a character encoded in document code page.
+void Editor::InsertCharacter(const char *s, unsigned int len, CharacterSource charSource) {
 	if (len == 0) {
 		return;
 	}
@@ -1974,7 +1974,7 @@ void Editor::AddCharUTF(const char *s, unsigned int len, bool treatAsDBCS) {
 	}
 
 	int ch = static_cast<unsigned char>(s[0]);
-	if (treatAsDBCS || pdoc->dbcsCodePage != SC_CP_UTF8) {
+	if (pdoc->dbcsCodePage != SC_CP_UTF8) {
 		if (len > 1) {
 			// DBCS code page or DBCS font character set.
 			ch = (ch << 8) | static_cast<unsigned char>(s[1]);
@@ -1991,10 +1991,11 @@ void Editor::AddCharUTF(const char *s, unsigned int len, bool treatAsDBCS) {
 			ch = utf32[0];
 		}
 	}
-	NotifyChar(ch);
+	NotifyChar(ch, charSource);
 
-	if (recordingMacro) {
-		NotifyMacroRecord(SCI_REPLACESEL, 0, reinterpret_cast<sptr_t>(s));
+	if (recordingMacro && charSource != CharacterSource::tentativeInput) {
+		std::string copy(s, len); // ensure NUL-terminated
+		NotifyMacroRecord(SCI_REPLACESEL, 0, reinterpret_cast<sptr_t>(copy.data()));
 	}
 }
 
@@ -2338,10 +2339,11 @@ void Editor::NotifyErrorOccurred(Document *, void *, int status) {
 	errorStatus = status;
 }
 
-void Editor::NotifyChar(int ch) {
+void Editor::NotifyChar(int ch, CharacterSource charSource) {
 	SCNotification scn = {};
 	scn.nmhdr.code = SCN_CHARADDED;
 	scn.ch = ch;
+	scn.characterSource = static_cast<int>(charSource);
 	NotifyParent(scn);
 }
 
@@ -3087,7 +3089,7 @@ void Editor::NewLine() {
 	for (size_t i = 0; i < countInsertions; i++) {
 		const char *eol = StringFromEOLMode(pdoc->eolMode);
 		while (*eol) {
-			NotifyChar(*eol);
+			NotifyChar(*eol, CharacterSource::directInput);
 			if (recordingMacro) {
 				char txt[2];
 				txt[0] = *eol;
@@ -7309,7 +7311,7 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 		return vs.caretcolour.AsInteger();
 
 	case SCI_SETCARETSTYLE:
-		if (wParam <= (CARETSTYLE_BLOCK | CARETSTYLE_OVERSTRIKE_BLOCK))
+		if (wParam <= (CARETSTYLE_BLOCK | CARETSTYLE_OVERSTRIKE_BLOCK | CARETSTYLE_BLOCK_AFTER))
 			vs.caretStyle = static_cast<int>(wParam);
 		else
 			/* Default to the line caret */
@@ -7343,7 +7345,7 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 		break;
 
 	case SCI_INDICSETSTYLE:
-		if (wParam <= INDIC_MAX) {
+		if (wParam <= INDICATOR_MAX) {
 			vs.indicators[wParam].sacNormal.style = static_cast<int>(lParam);
 			vs.indicators[wParam].sacHover.style = static_cast<int>(lParam);
 			InvalidateStyleRedraw();
@@ -7351,10 +7353,10 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 		break;
 
 	case SCI_INDICGETSTYLE:
-		return (wParam <= INDIC_MAX) ? vs.indicators[wParam].sacNormal.style : 0;
+		return (wParam <= INDICATOR_MAX) ? vs.indicators[wParam].sacNormal.style : 0;
 
 	case SCI_INDICSETFORE:
-		if (wParam <= INDIC_MAX) {
+		if (wParam <= INDICATOR_MAX) {
 			vs.indicators[wParam].sacNormal.fore = ColourDesired(static_cast<int>(lParam));
 			vs.indicators[wParam].sacHover.fore = ColourDesired(static_cast<int>(lParam));
 			InvalidateStyleRedraw();
@@ -7362,67 +7364,67 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 		break;
 
 	case SCI_INDICGETFORE:
-		return (wParam <= INDIC_MAX) ? vs.indicators[wParam].sacNormal.fore.AsInteger() : 0;
+		return (wParam <= INDICATOR_MAX) ? vs.indicators[wParam].sacNormal.fore.AsInteger() : 0;
 
 	case SCI_INDICSETHOVERSTYLE:
-		if (wParam <= INDIC_MAX) {
+		if (wParam <= INDICATOR_MAX) {
 			vs.indicators[wParam].sacHover.style = static_cast<int>(lParam);
 			InvalidateStyleRedraw();
 		}
 		break;
 
 	case SCI_INDICGETHOVERSTYLE:
-		return (wParam <= INDIC_MAX) ? vs.indicators[wParam].sacHover.style : 0;
+		return (wParam <= INDICATOR_MAX) ? vs.indicators[wParam].sacHover.style : 0;
 
 	case SCI_INDICSETHOVERFORE:
-		if (wParam <= INDIC_MAX) {
+		if (wParam <= INDICATOR_MAX) {
 			vs.indicators[wParam].sacHover.fore = ColourDesired(static_cast<int>(lParam));
 			InvalidateStyleRedraw();
 		}
 		break;
 
 	case SCI_INDICGETHOVERFORE:
-		return (wParam <= INDIC_MAX) ? vs.indicators[wParam].sacHover.fore.AsInteger() : 0;
+		return (wParam <= INDICATOR_MAX) ? vs.indicators[wParam].sacHover.fore.AsInteger() : 0;
 
 	case SCI_INDICSETFLAGS:
-		if (wParam <= INDIC_MAX) {
+		if (wParam <= INDICATOR_MAX) {
 			vs.indicators[wParam].SetFlags(static_cast<int>(lParam));
 			InvalidateStyleRedraw();
 		}
 		break;
 
 	case SCI_INDICGETFLAGS:
-		return (wParam <= INDIC_MAX) ? vs.indicators[wParam].Flags() : 0;
+		return (wParam <= INDICATOR_MAX) ? vs.indicators[wParam].Flags() : 0;
 
 	case SCI_INDICSETUNDER:
-		if (wParam <= INDIC_MAX) {
+		if (wParam <= INDICATOR_MAX) {
 			vs.indicators[wParam].under = lParam != 0;
 			InvalidateStyleRedraw();
 		}
 		break;
 
 	case SCI_INDICGETUNDER:
-		return (wParam <= INDIC_MAX) ? vs.indicators[wParam].under : 0;
+		return (wParam <= INDICATOR_MAX) ? vs.indicators[wParam].under : 0;
 
 	case SCI_INDICSETALPHA:
-		if (wParam <= INDIC_MAX && lParam >=0 && lParam <= 255) {
+		if (wParam <= INDICATOR_MAX && lParam >=0 && lParam <= 255) {
 			vs.indicators[wParam].fillAlpha = static_cast<int>(lParam);
 			InvalidateStyleRedraw();
 		}
 		break;
 
 	case SCI_INDICGETALPHA:
-		return (wParam <= INDIC_MAX) ? vs.indicators[wParam].fillAlpha : 0;
+		return (wParam <= INDICATOR_MAX) ? vs.indicators[wParam].fillAlpha : 0;
 
 	case SCI_INDICSETOUTLINEALPHA:
-		if (wParam <= INDIC_MAX && lParam >=0 && lParam <= 255) {
+		if (wParam <= INDICATOR_MAX && lParam >=0 && lParam <= 255) {
 			vs.indicators[wParam].outlineAlpha = static_cast<int>(lParam);
 			InvalidateStyleRedraw();
 		}
 		break;
 
 	case SCI_INDICGETOUTLINEALPHA:
-		return (wParam <= INDIC_MAX) ? vs.indicators[wParam].outlineAlpha : 0;
+		return (wParam <= INDICATOR_MAX) ? vs.indicators[wParam].outlineAlpha : 0;
 
 	case SCI_SETINDICATORCURRENT:
 		pdoc->DecorationSetCurrentIndicator(static_cast<int>(wParam));
@@ -7557,7 +7559,7 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 		break;
 
 	case SCI_BRACEHIGHLIGHTINDICATOR:
-		if (lParam >= 0 && lParam <= INDIC_MAX) {
+		if (lParam >= 0 && lParam <= INDICATOR_MAX) {
 			vs.braceHighlightIndicatorSet = wParam != 0;
 			vs.braceHighlightIndicator = static_cast<int>(lParam);
 		}
@@ -7568,7 +7570,7 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 		break;
 
 	case SCI_BRACEBADLIGHTINDICATOR:
-		if (lParam >= 0 && lParam <= INDIC_MAX) {
+		if (lParam >= 0 && lParam <= INDICATOR_MAX) {
 			vs.braceBadLightIndicatorSet = wParam != 0;
 			vs.braceBadLightIndicator = static_cast<int>(lParam);
 		}
