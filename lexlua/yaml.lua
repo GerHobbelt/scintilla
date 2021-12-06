@@ -97,6 +97,7 @@ M._rules = {
   {'comment', comment},
   {'doc_bounds', doc_bounds},
   {'key', key},
+  {'string', string},
   {'literal', literal},
   {'timestamp', ts},
   {'number', number},

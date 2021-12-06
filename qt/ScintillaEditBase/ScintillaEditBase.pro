@@ -19,7 +19,7 @@ unix {
     }
 }
 
-VERSION = 3.10.3
+VERSION = 3.10.4
 
 SOURCES += \
     PlatQt.cpp \
@@ -27,6 +27,7 @@ SOURCES += \
     ScintillaEditBase.cpp \
     ../../src/XPM.cxx \
     ../../src/ViewStyle.cxx \
+    ../../src/UniqueString.cxx \
     ../../src/UniConversion.cxx \
     ../../src/Style.cxx \
     ../../src/Selection.cxx \

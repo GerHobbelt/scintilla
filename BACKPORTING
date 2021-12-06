@@ -358,3 +358,99 @@ branch), or have information worth noting.
 
 7250:f77887e669fc SciTE history.
   Not backported, since this is LongTerm3.
+
+7280:9cf6a15d6c85 Use noexcept and constexpr where possible and reasonable.
+  Backported, but removed use of constexpr, since it is a >= C++14 feature for
+  non-return-only functions.
+
+7281:4cb7fa260e77 SciTE changelog.
+7284:b52eed62fda9 SciTE change log.
+  Not backported, since this is LongTerm3.
+
+7289:3f930310a0de Use constexpr where reasonable and move groups of static functions into unnamed namespace.
+  Backported, but removed some instances of constexpr, since it is a >= C++14
+  feature for non-return-only functions
+
+7290:07b4e4192bb2 Updated version number for release.
+7292:20a944185079 Added tag rel-4-1-4 for changeset cd35899fef5e
+  Not backported, since this is LongTerm3.
+
+7293:3d4c60be1963 Update download sizes.
+  Not backported, since this is not applicable.
+
+7315:57ea0255c8aa Avoid hangs in idle styling modes caused by high-priority idle work styling.
+  Backported, but removed some instances of constexpr, since it is a >= C++14
+  feature for non-static data members.
+
+7319:6db11117d56f Use noexcept where allowed, not inherited from base class, and not a COM method.
+7320:304d26d7137f Minor warnings fixed - uninitialized, nullptr, type agreement, avoid casts.
+  Backported, but without the C++17 multi-byte helper functions from a previous
+  changeset.
+
+7322:b79d68be7e96 Credit for SciTE change.
+  Not backported, since this is LongTerm3.
+
+7325:6148329fb2f3 Implement WStringFromUTF8 to simplify code that creates wstring objects for regular expressions and calling the Win32 API.
+  Backported, but replaced std::string_view usage with const char* and size_t
+  components. Also used #ifdef instead of C++17 `if constexpr` at suggestion of
+  Neil.
+
+7326:2f9b5e1c97ae Use noexcept where sensible. Rename UTF8 string_view parameters for clarity.
+  Backported, but without the variable renames, since they are not applicable.
+
+7328:521b1e23bfe2 Fix warnings from MSVC Code Analysis.
+  Backported, but without C++17 std::size and `SymbolValue() = default` instead
+  of `SymbolValue() noexcept = default`, since the latter causes a compile
+  error.
+
+7329:2662ef098d93 Use generic versions of ceil, floor, round, lround, trunc from <cmath>.
+  Backported, but without std::round and std::lround, since older Mac OSX SDKs
+  may not have them.
+
+7332:982c5f3833bb Simplify with range for.
+  Not backported, since std::string_view from C++17 is not used.
+
+7333:3f381a0bbeff Use std::make_unique.
+  Not backported, since std::make_unique is not in C++11.
+
+7337:eeaddec85ecc Use size_t for consistency and to avoid casts.
+  Not backported, since std::string_view from C++17 is not used.
+
+7349:0b7800a19ed3 Updated ScintillaFramework internationalization to fix warnings from Xcode 10.2.
+  Backported, but only .cxx file reordering. Internationalization was not
+  backported in case it's not compatible with earlier versions of Xcode.
+
+7350:0b319d73d317 Updated ScintillaTest internationalization to fix warnings from Xcode 10.2.
+  Not backported in case it's not compatible with earlier versions of Xcode.
+
+7392:2832adedd0f4 Feature [feature-requests:#1259]. Add SCI_SETCHARACTERCATEGORYOPTIMIZATION API
+  Backported, but with added includes for Sci::clamp().
+
+7402:751b76b567f9 Move UniqueStringCopy into its own source file UniqueString.cxx to hide the implementation.
+7409:a70a4ee51448 Rename FontNames to UniqueStringSet and move into UniqueString.
+  Backported, but with an alternative to C++17's string_view.
+
+7411:c3bc2e4277b2 Make dependencies scripts work when called from scite/scripts/RegenerateSource.py.
+  Not backported, since it is for SciTE and it requires Python 3.x.
+
+7414:599d698f70bf Use noexcept in CaseConvert as well as std::string_view::copy.
+  Backported, but without std::string_view::copy.
+
+7416:76d7aeac3271 Updated required Python version due to differences in how imports work in 2.7.
+  Not backported, since it is for SciTE and it requires Python 3.x.
+
+7417:bbef7c52aecf Use views for input string parameters as that allows calling with more varied values and can avoid allocations.
+7418:bf93fe7f0940 Bug [#2093]. Use wstring_view to unify adding text and eliminate AddCharUTF16.
+  Not backported, since a previous commit to use C++17's std::string_view was
+  not backported.
+
+7423:2e2cf21cee0b Bug [#2093]. Remove restrictions on IME input length.
+  Not backported, since the lack of a previous backport still references
+  maxLenInputIME.
+
+7425:466a7bd45f06 Preparing for 4.1.5 release.
+7427:72074cd809c5 Added 4.1.5 blurb.
+7428:bebdebd489c6 Added tag rel-4-1-5 for changeset 72074cd809c5
+7430:6a6bf370ae9f Removed tag rel-4-1-5
+7431:fcecd4a96700 Added tag rel-4-1-5 for changeset 6a6bf370ae9f
+  Not backported, since this is LongTerm3.
