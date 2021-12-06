@@ -549,6 +549,9 @@
 	<td>Chris Graham</td>
 	<td>Hugues Larrive</td>
 	<td>Prakash Sahni</td>
+	<td>uhf7</td>
+      </tr><tr>
+	<td>Derek Brown</td>
     </tr>
     </table>
     <p>
@@ -559,6 +562,52 @@
         <a href="http://sourceforge.net/projects/icon-collection/">
         Icons</a> Copyright(C) 1998 by Dean S. Jones<br />
       </li>
+    </ul>
+    <h3>
+       <a href="https://sourceforge.net/projects/scintilla/files/scintilla/3.21.1/scintilla3211.zip/download">Release 3.21.1</a>
+    </h3>
+    <ul>
+	<li>
+	Released 12 September 2020.
+	</li>
+	<li>
+	Fix position of marker symbols for SC_MARGIN_RTEXT which were being moved based on
+	width of text.
+	</li>
+	<li>
+	Allow cross-building for GTK by choosing pkg-config.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2189/">Bug #2189</a>.
+	</li>
+	<li>
+	On GTK, allow setting CPPFLAGS (and LDFLAGS for SciTE) to support hardening.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2191/">Bug #2191</a>.
+	</li>
+	<li>
+	Fixed bug on Win32 where cursor was flickering between hand and text over an
+	indicator with hover style.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2170/">Bug #2170</a>.
+	</li>
+	<li>
+	Fixed bug where hovered indicator was not returning to non-hover
+	appearance when mouse moved out of window or into margin.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2193/">Bug #2193</a>.
+	</li>
+	<li>
+	Fixed bug where a hovered INDIC_TEXTFORE indicator was not applying the hover
+	colour to the whole range.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2199/">Bug #2199</a>.
+	</li>
+	<li>
+	Fixed bug where gradient indicators were not showing hovered appearance.
+	</li>
+	<li>
+	Fixed bug where layout caching was ineffective.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2197/">Bug #2197</a>.
+	</li>
+	<li>
+	Added method for iterating through multiple vertical edges: SCI_GETMULTIEDGECOLUMN.
+	<a href="https://sourceforge.net/p/scintilla/feature-requests/1350/">Feature #1350</a>.
+	</li>
     </ul>
     <h3>
        <a href="https://sourceforge.net/projects/scintilla/files/scintilla/3.21.0/scintilla3210.zip/download">Release 3.21.0</a>
@@ -601,6 +650,10 @@
 	<li>
 	Allow caret width to be up to 20 pixels.
 	<a href="https://sourceforge.net/p/scintilla/feature-requests/1361/">Feature #1361</a>.
+	</li>
+	<li>
+	The curses platform's <code>scintilla_get_clipboard()</code> now returns a
+	copy of clipboard text directly.
 	</li>
 	<li>
 	Fix translucent rectangle drawing on Qt. When drawing a translucent selection, there were edge
@@ -648,6 +701,10 @@
 	</li>
 	<li>
 	The Lua LPeg lexer for C now highlights C99 <code>bool</code>, <code>true</code>, and <code>false</code>.
+	</li>
+	<li>
+	Fixed crashes in Lua LPeg lexer when "lexer.lua" cannot be found, and when
+	attempting to set styles for non-existant tokens.
 	</li>
 	<li>
 	Fixed bug with GTK on recent Linux distributions where underscores were invisible.
