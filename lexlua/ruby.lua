@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('ruby')
 
@@ -101,7 +101,7 @@ lex:add_rule('variable', token(lexer.VARIABLE, global_var + class_var +
 lex:add_rule('symbol', token('symbol', ':' * P(function(input, index)
   if input:sub(index - 2, index - 2) ~= ':' then return index end
 end) * (word_char^1 + sq_str + dq_str)))
-lex:add_style('symbol', lexer.STYLE_CONSTANT)
+lex:add_style('symbol', lexer.styles.constant)
 
 -- Operators.
 lex:add_rule('operator', token(lexer.OPERATOR, S('!%^&*()[]{}-=+/|:;.,?<>~')))

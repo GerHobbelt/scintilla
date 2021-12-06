@@ -3,7 +3,7 @@
 
 local lexer = require("lexer")
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('toml', {fold_by_indentation = true})
 
@@ -12,7 +12,7 @@ lex:add_rule('indent', #lexer.starts_line(S(' \t')) *
   (token(lexer.WHITESPACE, ' ') + token('indent_error', '\t'))^1)
 lex:add_rule('whitespace', token(lexer.WHITESPACE, S(' \t')^1 +
   lexer.newline^1))
-lex:add_style('indent_error', 'back:%(color.red)')
+lex:add_style('indent_error', {back = lexer.colors.red})
 
 -- kewwords.
 lex:add_rule('keyword', token(lexer.KEYWORD, word_match[[true false]]))
@@ -44,7 +44,7 @@ local time = hours * ':' * minutes * ':' * seconds * fraction^-1
 local T = S(' \t')^1 + S('tT')
 local zone = 'Z' + S(' \t')^0 * S('-+') * hours * (':' * minutes)^-1
 lex:add_rule('datetime', token('timestamp', date * (T * time * zone^-1)))
-lex:add_style('timestamp', lexer.STYLE_NUMBER)
+lex:add_style('timestamp', lexer.styles.number)
 
 -- Numbers.
 lex:add_rule('number', token(lexer.NUMBER, lexer.number))

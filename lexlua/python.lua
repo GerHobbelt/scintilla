@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('python', {fold_by_indentation = true})
 
@@ -67,7 +67,7 @@ lex:add_rule('constant', token(lexer.CONSTANT, word_match[[
 
 -- Self.
 lex:add_rule('self', token('self', P('self')))
-lex:add_style('self', lexer.STYLE_TYPE)
+lex:add_style('self', lexer.styles.type)
 
 -- Identifiers.
 lex:add_rule('identifier', token(lexer.IDENTIFIER, lexer.word))
@@ -86,15 +86,15 @@ lex:add_rule('string', token(lexer.STRING, tq_str + sq_str + dq_str +
   raw_sq_str + raw_dq_str))
 
 -- Numbers.
-local dec = lexer.digit^1 * S('Ll')^-1
+local dec = lexer.dec_num * S('Ll')^-1
 local bin = '0b' * S('01')^1 * ('_' * S('01')^1)^0
-local oct = '0' * R('07')^1 * S('Ll')^-1
+local oct = lexer.oct_num * S('Ll')^-1
 local integer = S('+-')^-1 * (bin + lexer.hex_num + oct + dec)
 lex:add_rule('number', token(lexer.NUMBER, lexer.float + integer))
 
 -- Decorators.
 lex:add_rule('decorator', token('decorator', lexer.to_eol('@')))
-lex:add_style('decorator', lexer.STYLE_PREPROCESSOR)
+lex:add_style('decorator', lexer.styles.preprocessor)
 
 -- Operators.
 lex:add_rule('operator', token(lexer.OPERATOR, S('!%^&*()[]{}-=+/|:;.,?<>~`')))

@@ -151,7 +151,7 @@ LexerLibrary::LexerLibrary(const char *moduleName_) {
 
 				// The external lexer needs to know how to call into its DLL to
 				// do its lexing and folding, we tell it here.
-				lex->SetExternal(fnFactory, i);
+        lex->SetExternal(fnFactory, i);
 			}
 		}
 	}

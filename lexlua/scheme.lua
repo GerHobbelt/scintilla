@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('scheme')
 
@@ -70,7 +70,7 @@ lex:add_rule('operator', token(lexer.OPERATOR, S('<>=*/+-`@%:()')))
 
 -- Entity.
 lex:add_rule('entity', token('entity', '&' * word))
-lex:add_style('entity', lexer.STYLE_VARIABLE)
+lex:add_style('entity', lexer.styles.variable)
 
 -- Fold points.
 lex:add_fold_point(lexer.OPERATOR, '(', ')')

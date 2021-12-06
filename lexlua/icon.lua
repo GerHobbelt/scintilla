@@ -5,7 +5,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('icon')
 
@@ -26,7 +26,7 @@ lex:add_rule('special_keyword', token('special_keyword', P('&') * word_match[[
   lcase letters level line main null output phi pi pos progname random regions
   source storage subject time trace ucase version
 ]]))
-lex:add_style('special_keyword', lexer.STYLE_TYPE)
+lex:add_style('special_keyword', lexer.styles.type)
 
 -- Identifiers.
 lex:add_rule('identifier', token(lexer.IDENTIFIER, lexer.word))

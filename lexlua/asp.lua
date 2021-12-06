@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local html = lexer.load('html')
 local lex = lexer.new('asp', {inherit = html}) -- proxy for HTML
@@ -13,7 +13,7 @@ local vb = lexer.load('vb')
 local vb_start_rule = token('asp_tag', '<%' * P('=')^-1)
 local vb_end_rule = token('asp_tag', '%>')
 lex:embed(vb, vb_start_rule, vb_end_rule)
-lex:add_style('asp_tag', lexer.STYLE_EMBEDDED)
+lex:add_style('asp_tag', lexer.styles.embedded)
 
 -- Embedded VBScript.
 local vbs = lexer.load('vbscript')

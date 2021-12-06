@@ -4,7 +4,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('autoit')
 
@@ -116,7 +116,7 @@ lex:add_rule('string', token(lexer.STRING, dq_str + sq_str + inc))
 
 -- Macros.
 lex:add_rule('macro', token('macro', '@' * (lexer.alnum + '_')^1))
-lex:add_style('macro', lexer.STYLE_PREPROCESSOR)
+lex:add_style('macro', lexer.styles.preprocessor)
 
 -- Variables.
 lex:add_rule('variable', token(lexer.VARIABLE, '$' * (lexer.alnum + '_')^1))

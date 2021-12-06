@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('fish')
 
@@ -35,7 +35,7 @@ lex:add_rule('string', token(lexer.STRING, sq_str + dq_str))
 
 -- Shebang.
 lex:add_rule('shebang', token('shebang', lexer.to_eol('#!/')))
-lex:add_style('shebang', lexer.STYLE_LABEL)
+lex:add_style('shebang', lexer.styles.label)
 
 -- Comments.
 lex:add_rule('comment', token(lexer.COMMENT, lexer.to_eol('#')))

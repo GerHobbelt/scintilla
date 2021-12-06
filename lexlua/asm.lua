@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('asm')
 
@@ -280,7 +280,7 @@ lex:add_rule('instruction', token('instruction', word_match[[
   hint_nop56 hint_nop57 hint_nop58 hint_nop59 hint_nop60 hint_nop61 hint_nop62
   hint_nop63
 ]]))
-lex:add_style('instruction', lexer.STYLE_FUNCTION)
+lex:add_style('instruction', lexer.styles['function'])
 
 -- Registers.
 lex:add_rule('register', token('register', word_match[[
@@ -294,7 +294,7 @@ lex:add_rule('register', token('register', word_match[[
   xmm9 xmm10 xmm11 xmm12 xmm13 xmm14 xmm15 ymm8 ymm9 ymm10 ymm11 ymm12 ymm13
   ymm14 ymm15
 ]]))
-lex:add_style('register', lexer.STYLE_CONSTANT)
+lex:add_style('register', lexer.styles.constant)
 
 -- Types.
 local sizes = word_match[[
@@ -345,7 +345,7 @@ local pp_word = word_match[[
   ixdefine line local macro pathsearch pop push rep repl rmacro rotate stacksize
   strcat strlen substr undef unmacro use warning while xdefine
 ]]
-local pp_symbol = '??' + S('!$+?') + '%' * -lexer.space + R('09')^1
+local pp_symbol = '??' + S('!$+?') + '%' * -lexer.space + lexer.digit^1
 lex:add_rule('preproc', token(lexer.PREPROCESSOR, '%' * (pp_word + pp_symbol)))
 
 -- Operators.

@@ -3,7 +3,16 @@
 # backporting fixes and features from the main branch of Scintilla. It likely
 # will not produce compiled targets that can be used by a Scintilla-based
 # application.
-# Usage: make -f check.mak
+# Usage: 
+#   make -f check.mak            # check that everything compiles
+#   make -f check.mak test       # run all tests
+#   make -f check.mak bait       # run test GTK program
+#   make -f check.mak dmapp      # run test Win32 program using WINE
+#   make -f check.mak jinx       # run test curses program with Lua LPeg lexers
+#   make -f check.mak gen        # update all version info and dates based on
+#                                  version.txt and the current date
+#   make -f check.mak zip        # make release archives
+#   make -f check.mak upload     # upload HTML docs to sourceforge
 
 .SUFFIXES: .cxx .c .o .h .a
 
@@ -210,6 +219,60 @@ clean:
 test: | /tmp/scintilla
 	make -C $|/test/unit CXX=$(LINUX_CXX) clean test
 	cd $|/test && lua5.1 test_lexlua.lua
+
+# Bait test program for GTK.
+# Rebuild scintilla.a to ensure only GTK platform objects are inside.
+bait: | /tmp/scintilla/gtk/bait
+	rm -f $|/../../bin/scintilla.a
+	make -C $(dir $|) -j4
+	make -C $|
+	$|/$@
+/tmp/scintilla/gtk/bait: /tmp/scintilla/bait.zip | /tmp/scintilla
+	mkdir $@
+	unzip -d $@ $< && mv $@/bait/* $@ && rmdir $@/bait
+	sed -i -e 's|scintilla|..|;' $@/Makefile
+/tmp/scintilla/bait.zip: | /tmp/scintilla
+	wget -O $@ https://www.scintilla.org/bait.zip
+
+# dmapp test program for Win32.
+# Since the test program is mean to be build on Windows, create a makefile for 
+# cross-compiling from Linux.
+dmapp_dlls = /tmp/scintilla/win32/dmapp/SciLexer.dll
+define _dmapp_makefile
+ALL: DMApp.exe
+DMApp.o: DMApp.cxx ; i686-w64-mingw32-g++ -std=c++11 -I ../../include -c $< -o $@
+DMApp_rc.o: DMApp.rc ; i686-w64-mingw32-windres $< $@
+DMApp.exe: DMApp.o DMApp_rc.o ; i686-w64-mingw32-g++ $^ -o $@ -lkernel32 -luser32 -lgdi32 -lcomdlg32 -lwinmm -lcomctl32 -ladvapi32 -limm32 -lshell32 -lole32 -lstdc++
+clean: ; rm -f *.exe *.o *.res
+endef
+export dmapp_makefile = $(value _dmapp_makefile)
+dmapp: /tmp/scintilla/win32/dmapp/DMApp.exe
+	WINEPREFIX=$(dir $<)/wine WINEARCH=win32 wine $<
+lexilla: /tmp/scintilla/win32/dmapp/DMApp.exe
+	WINEPREFIX=$(dir $<)/wine WINEARCH=win32 wine $< X
+/tmp/scintilla/win32/dmapp/DMApp.exe: $(dmapp_dlls) | /tmp/scintilla/win32/dmapp
+	make -C $|
+$(dmapp_dlls): | /tmp/scintilla/win32/dmapp
+	rm -f $|/../Catalogue.o $|/../ScintillaBase.o
+	make -C $(dir $|) CXX=/opt/mingw-w64/bin/i686-w64-mingw32-g++ \
+		AR=/opt/mingw-w64/bin/i686-w64-mingw32-ar \
+		RANLIB=/opt/mingw-w64/bin/i686-w64-mingw32-ranlib \
+		WINDRES=/opt/mingw-w64/bin/i686-w64-mingw32-windres -j4
+	cd $| && ln -sf ../../bin/*.dll .
+/tmp/scintilla/win32/dmapp: /tmp/scintilla/dmapp.zip | /tmp/scintilla
+	mkdir $@
+	unzip -d $@ $<
+	sed -i -e '/SCI_SETSTYLEBITS/d' $@/DMApp.cxx
+	echo "$$dmapp_makefile" > $@/makefile
+/tmp/scintilla/dmapp.zip: | /tmp/scintilla
+	wget -O $@ https://www.scintilla.org/dmapp.zip
+
+# jinx test program for curses.
+jinx: | /tmp/scintilla/curses/jinx
+	rm -f $|/../../bin/scintilla.a $|/../LexLPeg.o
+	make -C $(dir $|) -j4 LPEG_LEXER=1 DEBUG=1
+	make -C $| LPEG_LEXER=1 DEBUG=1
+	cd $| && ./$@
 
 version = $(shell grep -o '[0-9]\+' version.txt)
 date = $(shell date +'%Y%m%d')

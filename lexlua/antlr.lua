@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('antlr')
 
@@ -38,7 +38,7 @@ lex:add_rule('comment', token(lexer.COMMENT, line_comment + block_comment))
 -- Actions.
 lex:add_rule('action', token(lexer.OPERATOR, P('{')) *
   token('action', (1 - P('}'))^0) * token(lexer.OPERATOR, P('}'))^-1)
-lex:add_style('action', lexer.STYLE_NOTHING)
+lex:add_style('action', lexer.styles.nothing)
 
 -- Strings.
 lex:add_rule('string', token(lexer.STRING, lexer.range("'", true)))

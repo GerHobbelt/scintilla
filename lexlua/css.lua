@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S, V = lpeg.P, lpeg.R, lpeg.S, lpeg.V
+local P, S, V = lpeg.P, lpeg.S, lpeg.V
 
 local lex = lexer.new('css')
 
@@ -44,7 +44,7 @@ lex:add_rule('property', token('property', word_match[[
   transition transform box-shadow filter opacity resize word-break word-wrap
   box-sizing animation text-overflow
 ]]))
-lex:add_style('property', lexer.STYLE_KEYWORD)
+lex:add_style('property', lexer.styles.keyword)
 
 -- Values.
 lex:add_rule('value', token('value', word_match[[
@@ -82,7 +82,7 @@ lex:add_rule('value', token('value', word_match[[
   -- CSS 3.
   flex row column ellipsis inline-block
 ]]))
-lex:add_style('value', lexer.STYLE_CONSTANT)
+lex:add_style('value', lexer.styles.constant)
 
 -- Functions.
 lex:add_rule('function', token(lexer.FUNCTION, word_match[[
@@ -121,7 +121,7 @@ lex:add_rule('color', token('color', word_match[[
   steelblue tan teal thistle tomato transparent turquoise violet wheat white
   whitesmoke yellow yellowgreen
 ]] + '#' * xdigit * xdigit * xdigit * (xdigit * xdigit * xdigit)^-1))
-lex:add_style('color', lexer.STYLE_NUMBER)
+lex:add_style('color', lexer.styles.number)
 
 -- Identifiers.
 local word = lexer.alpha * (lexer.alnum + S('_-'))^0
@@ -134,11 +134,11 @@ lex:add_rule('pseudoclass', ':' * token('pseudoclass', word_match[[
   nth-last-child nth-last-of-type nth-of-type only-of-type only-child optional
   out-of-range read-only read-write required root target valid visited
 ]]))
-lex:add_style('pseudoclass', lexer.STYLE_CONSTANT)
+lex:add_style('pseudoclass', lexer.styles.constant)
 lex:add_rule('pseudoelement', '::' * token('pseudoelement', word_match[[
   after before first-letter first-line selection
 ]]))
-lex:add_style('pseudoelement', lexer.STYLE_CONSTANT)
+lex:add_style('pseudoelement', lexer.styles.constant)
 
 -- Strings.
 local sq_str = lexer.range("'")
@@ -153,8 +153,8 @@ local unit = token('unit', word_match[[
   ch cm deg dpcm dpi dppx em ex grad Hz in kHz mm ms pc pt px q rad rem s turn
   vh vmax vmin vw
 ]])
-lex:add_style('unit', lexer.STYLE_NUMBER)
-lex:add_rule('number', token(lexer.NUMBER, lexer.digit^1) * unit^-1)
+lex:add_style('unit', lexer.styles.number)
+lex:add_rule('number', token(lexer.NUMBER, lexer.dec_num) * unit^-1)
 
 -- Operators.
 lex:add_rule('operator', token(lexer.OPERATOR, S('~!#*>+=|.,:;()[]{}')))
@@ -163,7 +163,7 @@ lex:add_rule('operator', token(lexer.OPERATOR, S('~!#*>+=|.,:;()[]{}')))
 lex:add_rule('at_rule', token('at_rule', P('@') * word_match[[
   charset font-face media page import namespace keyframes
 ]]))
-lex:add_style('at_rule', lexer.STYLE_PREPROCESSOR)
+lex:add_style('at_rule', lexer.styles.preprocessor)
 
 -- Fold points.
 lex:add_fold_point(lexer.OPERATOR, '{', '}')

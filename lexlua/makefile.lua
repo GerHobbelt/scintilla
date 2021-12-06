@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('makefile', {lex_by_line = true})
 
@@ -30,7 +30,7 @@ local special_target = token(lexer.CONSTANT, word_match[[
 local normal_target = token('target', (lexer.any - lexer.space - S(':#='))^1)
 lex:add_rule('target', lexer.starts_line((special_target + normal_target) *
   ws^0 * #(':' * -P('='))))
-lex:add_style('target', lexer.STYLE_LABEL)
+lex:add_style('target', lexer.styles.label)
 
 -- Variables.
 local word_char = lexer.any - lexer.space - S(':#=(){}')

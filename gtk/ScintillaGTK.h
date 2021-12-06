@@ -37,6 +37,7 @@ class ScintillaGTK : public ScintillaBase {
 	GtkWidgetClass *parentClass;
 
 	static GdkAtom atomUTF8;
+	static GdkAtom atomUTF8Mime;
 	static GdkAtom atomString;
 	static GdkAtom atomUriList;
 	static GdkAtom atomDROPFILES_DND;
@@ -50,7 +51,7 @@ class ScintillaGTK : public ScintillaBase {
 	Window wPreedit;
 	Window wPreeditDraw;
 	GtkIMContext *im_context;
-	PangoScript lastNonCommonScript;
+	GUnicodeScript lastNonCommonScript;
 
 	// Wheel mouse support
 	unsigned int linesPerScroll;
@@ -133,11 +134,12 @@ private:
 	void AddToPopUp(const char *label, int cmd = 0, bool enabled = true) override;
 	bool OwnPrimarySelection();
 	void ClaimSelection() override;
+	static bool IsStringAtom(GdkAtom type);
 	void GetGtkSelectionText(GtkSelectionData *selectionData, SelectionText &selText);
-	void InsertSelection(GtkSelectionData *selectionData);
+	void InsertSelection(GtkClipboard *clipBoard, GtkSelectionData *selectionData);
 public:	// Public for SelectionReceiver
 	GObject *MainObject() const noexcept;
-	void ReceivedClipboard(GtkSelectionData *selection_data) noexcept;
+	void ReceivedClipboard(GtkClipboard *clipBoard, GtkSelectionData *selection_data) noexcept;
 private:
 	void ReceivedSelection(GtkSelectionData *selection_data);
 	void ReceivedDrop(GtkSelectionData *selection_data);

@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('gtkrc')
 
@@ -26,7 +26,7 @@ lex:add_rule('variable', token(lexer.VARIABLE, word_match[[
 lex:add_rule('state', token('state', word_match[[
   ACTIVE SELECTED NORMAL PRELIGHT INSENSITIVE TRUE FALSE
 ]]))
-lex:add_style('state', lexer.STYLE_CONSTANT)
+lex:add_style('state', lexer.styles.constant)
 
 -- Functions.
 lex:add_rule('function', token(lexer.FUNCTION, word_match[[

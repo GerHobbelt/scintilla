@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('erlang')
 
@@ -53,7 +53,7 @@ lex:add_rule('directive', token('directive', '-' * word_match[[
   author behaviour behavior compile copyright define doc else endif export file
   ifdef ifndef import include include_lib module record spec type undef
 ]]))
-lex:add_style('directive', lexer.STYLE_PREPROCESSOR)
+lex:add_style('directive', lexer.styles.preprocessor)
 
 -- Strings.
 local sq_str = lexer.range("'", true)

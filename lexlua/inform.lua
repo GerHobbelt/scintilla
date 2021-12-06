@@ -4,7 +4,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('inform')
 
@@ -48,7 +48,7 @@ lex:add_rule('action', token('action', word_match[[
   ThrowAt ThrownAt Tie Touch Transfer Turn Unlock VagueGo Verify Version Wait
   Wake WakeOther Wave WaveHands Wear Yes
 ]]))
-lex:add_style('action', lexer.STYLE_VARIABLE)
+lex:add_style('action', lexer.styles.variable)
 
 -- Identifiers.
 lex:add_rule('identifier', token(lexer.IDENTIFIER, lexer.word))

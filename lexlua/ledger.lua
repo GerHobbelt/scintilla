@@ -3,7 +3,7 @@
 
 local lexer = require('lexer')
 local token, word_match = lexer.token, lexer.word_match
-local P, R, S = lpeg.P, lpeg.R, lpeg.S
+local P, S = lpeg.P, lpeg.S
 
 local lex = lexer.new('ledger', {lex_by_line = true})
 
@@ -11,7 +11,7 @@ local delim = P('\t') + P('  ')
 
 -- Account.
 lex:add_rule('account', token(lexer.VARIABLE, lexer.starts_line(S(' \t')^1 *
-  (lexer.print - delim)^1)))
+  lexer.graph^1)))
 
 -- Amount.
 lex:add_rule('amount', token(lexer.NUMBER, delim * (1 - S(';\r\n'))^1))
