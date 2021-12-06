@@ -344,7 +344,7 @@ void ScintillaQt::PasteFromMode(QClipboard::Mode clipboardMode_)
 
 	UndoGroup ug(pdoc);
 	ClearSelection(multiPasteMode == SC_MULTIPASTE_EACH);
-	InsertPasteShape(selText.Data(), static_cast<int>(selText.Length()),
+	InsertPasteShape(selText.Data(), selText.Length(),
 		selText.rectangular ? pasteRectangular : pasteStream);
 	EnsureCaretVisible();
 }
@@ -676,7 +676,7 @@ sptr_t ScintillaQt::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam)
 	} catch (...) {
 		errorStatus = SC_STATUS_FAILURE;
 	}
-	return 0l;
+	return 0;
 }
 
 sptr_t ScintillaQt::DefWndProc(unsigned int, uptr_t, sptr_t)
