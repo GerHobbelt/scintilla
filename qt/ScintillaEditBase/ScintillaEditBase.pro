@@ -12,7 +12,7 @@ TEMPLATE = lib
 CONFIG += lib_bundle
 CONFIG += c++1z
 
-VERSION = 5.1.3
+VERSION = 5.1.4
 
 SOURCES += \
     PlatQt.cpp \
@@ -71,7 +71,6 @@ HEADERS  += \
     ../../src/KeyMap.h \
     ../../src/Indicator.h \
     ../../src/Geometry.h \
-    ../../src/FontQuality.h \
     ../../src/Editor.h \
     ../../src/Document.h \
     ../../src/Decoration.h \
