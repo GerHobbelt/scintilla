@@ -175,6 +175,9 @@ qt-clang/ScintillaEditBase/Makefile:
 	  QMAKE_CXX="$(CLANG_CXX)"
 	sed -i -e 's/libScintillaEditBase/clang-libScintillaEditBase/;' $@
 
+# LexLPeg objects.
+win32/LexLPeg.o cocoa/LexLPeg.o gtk/LexLPeg.o curses/LexLPeg.o: INCLUDEDIRS += -I/usr/include/lua5.1
+
 deps: win32_deps cocoa_deps gtk_deps curses_deps
 win32_deps: src/*.cxx lexlib/*.cxx lexers/*.cxx win32/*.cxx
 	$(CROSS_WIN32)$(CXX) -MM $(CXXFLAGS) $^ | \
