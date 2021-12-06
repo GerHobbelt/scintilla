@@ -1969,7 +1969,7 @@ void ScintillaCocoa::NotifyChange() {
 //--------------------------------------------------------------------------------------------------
 
 void ScintillaCocoa::NotifyFocus(bool focus) {
-	if (notifyProc != NULL)
+	if (commandEvents && notifyProc)
 		notifyProc(notifyObj, WM_COMMAND, Platform::LongFromTwoShorts(static_cast<short>(GetCtrlID()),
 				(focus ? SCEN_SETFOCUS : SCEN_KILLFOCUS)),
 			   (uintptr_t) this);
@@ -2179,7 +2179,18 @@ ptrdiff_t ScintillaCocoa::InsertText(NSString *input) {
 	std::string encoded = EncodedBytesString((__bridge CFStringRef)input, encoding);
 
 	if (encoded.length() > 0) {
-		AddCharUTF(encoded.c_str(), static_cast<unsigned int>(encoded.length()), false);
+		if (encoding == kCFStringEncodingUTF8) {
+			// There may be multiple characters in input so loop over them
+			std::string_view sv = encoded;
+			while (sv.length()) {
+				const unsigned char leadByte = sv[0];
+				const unsigned int bytesInCharacter = UTF8BytesOfLead[leadByte];
+				AddCharUTF(sv.data(), bytesInCharacter, false);
+				sv.remove_prefix(bytesInCharacter);
+			}
+		} else {
+			AddCharUTF(encoded.c_str(), static_cast<unsigned int>(encoded.length()), false);
+		}
 	}
 	return encoded.length();
 }
