@@ -202,6 +202,10 @@ static NSCursor *cursorFromEnum(Window::Cursor cursor) {
 	}
 }
 
+- (void) drawRect: (NSRect) rect {
+	[super drawRect:rect];
+}
+
 @end
 
 // Add owner property as a private category.

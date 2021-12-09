@@ -7,10 +7,7 @@ from __future__ import unicode_literals
 
 import ctypes, string, sys, unittest
 
-if sys.platform == "win32":
-	import XiteWin as Xite
-else:
-	import XiteQt as Xite
+import XiteWin as Xite
 
 # Unicode line ends are only available for lexers that support the feature so requires lexers
 lexersAvailable = Xite.lexillaAvailable or Xite.scintillaIncludesLexers
@@ -128,7 +125,7 @@ class TestSimple(unittest.TestCase):
 		self.assertEquals(self.ed.SelectionStart, 1)
 		self.assertEquals(self.ed.SelectionEnd, 3)
 		result = self.ed.GetSelText(0)
-		self.assertEquals(result, b"bc\0")
+		self.assertEquals(result, b"bc")
 		self.ed.ReplaceSel(0, b"1234")
 		self.assertEquals(self.ed.Length, 6)
 		self.assertEquals(self.ed.Contents(), b"a1234d")
@@ -2734,6 +2731,46 @@ class TestAutoComplete(unittest.TestCase):
 		self.ed.AutoCSelect(0, b"d")
 		self.ed.AutoCComplete()
 		self.assertEquals(self.ed.Contents(), b"defnxxx\n")
+
+		self.assertEquals(self.ed.AutoCActive(), 0)
+
+	def testAutoCustomSort(self):
+		# Checks bug #2294 where SC_ORDER_CUSTOM with an empty list asserts
+		# https://sourceforge.net/p/scintilla/bugs/2294/
+		self.assertEquals(self.ed.AutoCGetOrder(), self.ed.SC_ORDER_PRESORTED)
+
+		self.ed.AutoCSetOrder(self.ed.SC_ORDER_CUSTOM)
+		self.assertEquals(self.ed.AutoCGetOrder(), self.ed.SC_ORDER_CUSTOM)
+
+		#~ self.ed.AutoCShow(0, b"")
+		#~ self.ed.AutoCComplete()
+		#~ self.assertEquals(self.ed.Contents(), b"xxx\n")
+
+		self.ed.AutoCShow(0, b"a")
+		self.ed.AutoCComplete()
+		self.assertEquals(self.ed.Contents(), b"xxx\na")
+
+		self.ed.AutoCSetOrder(self.ed.SC_ORDER_PERFORMSORT)
+		self.assertEquals(self.ed.AutoCGetOrder(), self.ed.SC_ORDER_PERFORMSORT)
+
+		self.ed.AutoCShow(0, b"")
+		self.ed.AutoCComplete()
+		self.assertEquals(self.ed.Contents(), b"xxx\na")
+
+		self.ed.AutoCShow(0, b"b a")
+		self.ed.AutoCComplete()
+		self.assertEquals(self.ed.Contents(), b"xxx\naa")
+
+		self.ed.AutoCSetOrder(self.ed.SC_ORDER_PRESORTED)
+		self.assertEquals(self.ed.AutoCGetOrder(), self.ed.SC_ORDER_PRESORTED)
+
+		self.ed.AutoCShow(0, b"")
+		self.ed.AutoCComplete()
+		self.assertEquals(self.ed.Contents(), b"xxx\naa")
+
+		self.ed.AutoCShow(0, b"a b")
+		self.ed.AutoCComplete()
+		self.assertEquals(self.ed.Contents(), b"xxx\naaa")
 
 		self.assertEquals(self.ed.AutoCActive(), 0)
 
