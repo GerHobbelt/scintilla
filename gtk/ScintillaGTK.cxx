@@ -1965,7 +1965,7 @@ gint ScintillaGTK::ScrollEvent(GtkWidget *widget, GdkEventScroll *event) {
 		// Compute amount and direction to scroll (even tho on win32 there is
 		// intensity of scrolling info in the native message, gtk doesn't
 		// support this so we simulate similarly adaptive scrolling)
-		// Note that this is disabled on OS X (Darwin) with the X11 backend
+		// Note that this is disabled on macOS (Darwin) with the X11 backend
 		// where the X11 server already has an adaptive scrolling algorithm
 		// that fights with this one
 		int cLineScroll;
@@ -2656,13 +2656,13 @@ gboolean ScintillaGTK::DrawTextThis(cairo_t *cr) {
 
 		rcPaint = GetClientRectangle();
 
-		PLATFORM_ASSERT(rgnUpdate == nullptr);
+		cairo_rectangle_list_t *oldRgnUpdate = rgnUpdate;
 		rgnUpdate = cairo_copy_clip_rectangle_list(cr);
 		if (rgnUpdate && rgnUpdate->status != CAIRO_STATUS_SUCCESS) {
 			// If not successful then ignore
 			fprintf(stderr, "DrawTextThis failed to copy update region %d [%d]\n", rgnUpdate->status, rgnUpdate->num_rectangles);
 			cairo_rectangle_list_destroy(rgnUpdate);
-			rgnUpdate = 0;
+			rgnUpdate = nullptr;
 		}
 
 		double x1, y1, x2, y2;
@@ -2687,7 +2687,7 @@ gboolean ScintillaGTK::DrawTextThis(cairo_t *cr) {
 		if (rgnUpdate) {
 			cairo_rectangle_list_destroy(rgnUpdate);
 		}
-		rgnUpdate = 0;
+		rgnUpdate = oldRgnUpdate;
 		paintState = PaintState::notPainting;
 	} catch (...) {
 		errorStatus = Status::Failure;
@@ -2759,7 +2759,7 @@ gboolean ScintillaGTK::ExposeTextThis(GtkWidget * /*widget*/, GdkEventExpose *os
 				  ose->area.x + ose->area.width,
 				  ose->area.y + ose->area.height);
 
-		PLATFORM_ASSERT(rgnUpdate == nullptr);
+		GdkRegion *oldRgnUpdate = rgnUpdate;
 		rgnUpdate = gdk_region_copy(ose->region);
 		const PRectangle rcClient = GetClientRectangle();
 		paintingAllText = rcPaint.Contains(rcClient);
@@ -2779,7 +2779,7 @@ gboolean ScintillaGTK::ExposeTextThis(GtkWidget * /*widget*/, GdkEventExpose *os
 		if (rgnUpdate) {
 			gdk_region_destroy(rgnUpdate);
 		}
-		rgnUpdate = nullptr;
+		rgnUpdate = oldRgnUpdate;
 	} catch (...) {
 		errorStatus = Status::Failure;
 	}
